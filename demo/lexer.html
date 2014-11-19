@@ -1,8 +1,9 @@
 <html>
 <head>
 <title>glsl-simulator: lexer</title>
-<script src="lib/codemirror.js"></script>
 <link rel="stylesheet" href="lib/codemirror.css">
+<script src="../lib/glsl.js"></script>
+<script src="lib/codemirror.js"></script>
 <script src="lib/mode/glsl.js"></script>
 
 <style type="text/css">
@@ -86,6 +87,9 @@ void main( void ) {
 
 <script type="text/javascript">
 var editorNode = document.getElementById("shader-editor");
+var resultNode = document.getElementById("results-pane");
+var source = null;
+
 var cm = CodeMirror(function(elt) {
     editorNode.parentNode.replaceChild(elt, editorNode);
     elt.id = editorNode.id;
@@ -94,6 +98,19 @@ var cm = CodeMirror(function(elt) {
     mode: "glsl",
     lineNumbers: true
 });
+
+function parseEditorContent() {
+    try {
+        source = new GLSL.SourceCode(cm.getValue());
+        resultNode.textContent = "Successfully parsed."
+    } catch (e) {
+        resultNode.textContent = "ERROR: " + e.message;
+    }
+}
+
+cm.on("changes", parseEditorContent);
+
+parseEditorContent();
 </script>
 
 </body>
