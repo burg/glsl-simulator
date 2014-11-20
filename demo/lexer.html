@@ -29,9 +29,16 @@
 #results-pane {
     height: 1000px;
     border: solid 3px #9c9;
-    font-family: Helvetica, sans-serif;
-    font-size: 16px;
+    font-family: Menlo, monospace;
+    font-size: 12px;
+    overflow: scroll;
 }
+
+#results-pane h1 {
+    font-family: Helvetica, sans-serif;
+    font-size: 20px;
+}
+
 </style>
 
 </head>
@@ -81,7 +88,8 @@ void main( void ) {
 </div>
 
 <div id="results-pane">
-(no results yet)
+<h1 id="message">No results yet.</h1>
+<ul id="results"></ul>
 </div>
 </div>
 
@@ -102,7 +110,17 @@ var cm = CodeMirror(function(elt) {
 function parseEditorContent() {
     try {
         source = new GLSL.SourceCode(cm.getValue());
-        resultNode.textContent = "Successfully parsed."
+        var tokens = GLSL.tokenize(source.text);
+
+        document.getElementById("message").textContent = "Successfully tokenized.";
+        var results = document.getElementById("results");
+        while (results.hasChildNodes()) { results.removeChild(results.lastChild); }
+
+        for (var token of tokens) {
+            var n = document.createElement("li");
+            n.textContent = JSON.stringify(token);
+            results.appendChild(n);
+        }
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
     }

@@ -10,3 +10,5 @@ CodeMirror is copyright (c) by Marijn Haverbeke and others and
 distributed under an MIT license: http://codemirror.net/LICENSE.
 
 
+Portions of the lexer are derived from https://github.com/stackgl/glsl-tokenizer
+and distributed under the MIT license.
