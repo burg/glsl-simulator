@@ -3,7 +3,9 @@
 <title>glsl-simulator: lexer</title>
 <link rel="stylesheet" href="lib/codemirror.css">
 <script src="../lib/glsl.js"></script>
+<script src="../lib/glsl-parser.js"></script>
 <script src="lib/codemirror.js"></script>
+<script src="lib/jsDump.js"></script>
 <script src="lib/mode/glsl.js"></script>
 
 <style type="text/css">
@@ -32,13 +34,8 @@
     font-family: Menlo, monospace;
     font-size: 12px;
     overflow: scroll;
+    white-space: pre;
 }
-
-#results-pane h1 {
-    font-family: Helvetica, sans-serif;
-    font-size: 20px;
-}
-
 </style>
 
 </head>
@@ -92,8 +89,7 @@ void main( void ) {
 </div>
 
 <div id="results-pane">
-<h1 id="message">No results yet.</h1>
-<ul id="results"></ul>
+No results yet.
 </div>
 </div>
 
@@ -112,22 +108,12 @@ var cm = CodeMirror(function(elt) {
 });
 
 function parseEditorContent() {
+    source = new GLSL.SourceCode(cm.getValue());
+
     try {
-        source = new GLSL.SourceCode(cm.getValue());
-        var tokens = GLSL.tokenize(source.text);
-        document.getElementById("message").textContent = "Successfully tokenized.";
-        var tree = GLSL.parse(tokens);
-
-        document.getElementById("message").textContent = "Successfully parsed.";
-
-        var results = document.getElementById("results");
-        while (results.hasChildNodes()) { results.removeChild(results.lastChild); }
-
-        for (var token of tokens) {
-            var n = document.createElement("li");
-            n.textContent = JSON.stringify(token);
-            results.appendChild(n);
-        }
+        while (resultNode.hasChildNodes()) { resultNode.removeChild(resultNode.lastChild); }
+        var tree = GLSL.parse(source.text);
+        resultNode.appendChild(document.createTextNode(jsDump.parse(tree)));
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
     }

@@ -3,14 +3,13 @@ Original portions of glsl-simulator are licensed under the Simplified BSD licens
 
 ----
 
-glsl-mode.js is originally from https://github.com/mrdoob/glsl-sandbox/
+glsl-mode.js is originally from glsl-sandbox <https://github.com/mrdoob/glsl-sandbox/>
 and is distributed under the MIT license.
 
 CodeMirror is copyright (c) by Marijn Haverbeke and others and
 distributed under an MIT license: http://codemirror.net/LICENSE.
 
-Portions of the parser are derived from https://github.com/stackgl/glsl-parser
-and distributed under the MIT license.
+jsDump is copyright (c) by Ariel Flesler and is distributed under the BSD license.
 
-Portions of the lexer are derived from https://github.com/stackgl/glsl-tokenizer
-and distributed under the MIT license.
+The glsl.pegjs grammar is originally from glslunit <https://code.google.com/p/glsl-unit/>
+and is distributed under the Apache 2.0 license.
