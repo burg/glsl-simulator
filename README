@@ -11,7 +11,7 @@ As such, it is currently designed to run in a full browser environment.
 Usually the generated grammar is also checked into the repository. To change the grammar
 and regenerate the JavaScript parser, you need to install NPM module `pegjs`, and then run:
 
-    $ cd lib/ && pegjs -e "GLSL.__parser" glsl.pegjs glsl-parser.js
+    $ bin/generate-parser.sh
 
 # Running
 
