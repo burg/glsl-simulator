@@ -114,6 +114,9 @@ function parseEditorContent() {
         while (resultNode.hasChildNodes()) { resultNode.removeChild(resultNode.lastChild); }
         var tree = GLSL.parse(source.text);
         resultNode.appendChild(document.createTextNode(jsDump.parse(tree)));
+
+        var visitor = new GLSL.ASTVisitor();
+        visitor.visitNode(tree);
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
     }
