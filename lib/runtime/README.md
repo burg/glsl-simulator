@@ -18,3 +18,24 @@ Here are a set of our APIs that are different from the GLSL shader language.
 | mat         | m = f * m             | m.multiply(f) | r.multiply(f, m) |
 
 ### Runtime APIs ###
+
+### TODOs ###
+
+Week of 11/24/14 -- 11/30/14
+
+* Make getters and setters work
+* Make casting (for vec? and mat?) work, from both low to high dimensions and high to low dimensions
+* Construct vec and mat by using a single value
+* Make built-in functions work for vec?
+* Testing framework
+
+Week of 12/1/14 -- 12/7/14
+
+* Implement texture lookup functions
+* Implement Vertex/Fragment shader special variables
+* Test thoroughly
+
+Week of 12/8/14 -- 12/12/14
+
+* Demo
+* Writeups
