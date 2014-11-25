@@ -1,1 +1,0 @@
-# GLSL simulator Runtime specs #
