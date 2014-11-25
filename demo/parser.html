@@ -113,10 +113,12 @@ function parseEditorContent() {
     try {
         while (resultNode.hasChildNodes()) { resultNode.removeChild(resultNode.lastChild); }
         var tree = GLSL.parse(source.text);
+
+        var printer = new GLSL.PrettyPrinter();
+        resultNode.appendChild(document.createTextNode(printer.formattedText(tree)));
+
         resultNode.appendChild(document.createTextNode(jsDump.parse(tree)));
 
-        var visitor = new GLSL.ASTVisitor();
-        visitor.visitNode(tree);
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
     }
