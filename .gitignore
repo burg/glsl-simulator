@@ -32,3 +32,6 @@
 .settings/ # settings directory for eclipse
 tags
 Thumbs.db
+
+node_modules/
+browser/

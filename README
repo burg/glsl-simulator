@@ -1,17 +1,14 @@
 # Target
 
-`glsl-simulator` is a pure JavaScript compiler and runtime for GLSL shaders. It is designed to
-provide (browser) developer tools with the runtime information necessary to implement traditional
-debugging features such as stepping through control flow, introspecting live state and logging.
-As such, it is currently designed to run in a full browser environment.
+`glsl-simulator` is a JavaScript compiler and runtime for GLSL shaders. It is designed to provide (browser) developer tools with the runtime information necessary to implement features such as stepping through shader control flow, introspecting live state and logging. As such, it is currently designed to run in a full browser environment.
 
 # Dependencies
 
-`glsl-simulator` uses a PEG.js grammar to parse the OpenGL ES 1.0 Shader Language (GLSL).
+`glsl-simulator` uses a PEG.js grammar to parse the OpenGL ES 2.0 Shader Language (GLSL).
 Usually the generated grammar is also checked into the repository. To change the grammar
-and regenerate the JavaScript parser, you need to install NPM module `pegjs`, and then run:
+and regenerate the JavaScript parser, you need to install NPM module `pegjs`, and then run `make parser`.
 
-    $ bin/generate-parser.sh
+`glsl-simulator` uses modules to split functionality into multiple files, and uses UglifyJS2 to concatenate and minify sources for release builds. Simply run `make` and use the resulting library in the `browser/` build directory.
 
 # Running
 

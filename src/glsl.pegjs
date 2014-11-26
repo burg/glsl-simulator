@@ -39,9 +39,11 @@
     };
   }
 
+  var ASTNode = require("./ast");
+
   /** @constructor */
   function node(extraProperties, position) {
-    return new GLSL.Node(extraProperties.type, pos(), extraProperties);
+    return new ASTNode(extraProperties.type, pos(), extraProperties);
   };
 
   // Helper function to daisy chain together a series of binary operations.

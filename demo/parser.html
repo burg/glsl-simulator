@@ -2,8 +2,7 @@
 <head>
 <title>glsl-simulator: lexer</title>
 <link rel="stylesheet" href="lib/codemirror.css">
-<script src="../lib/glsl.js"></script>
-<script src="../lib/glsl-parser.js"></script>
+<script src="../browser/glsl-simulator-0.1.0.js"></script>
 <script src="lib/codemirror.js"></script>
 <script src="lib/jsDump.js"></script>
 <script src="lib/mode/glsl.js"></script>
@@ -65,22 +64,22 @@ void main( void ) {
 
     float sd = 0.19 - (pos.y*0.004 / pos.x*0.5) - atan( pos.x + pos.y, 40.0 );
     float so = 0.22 + pos.y*0.0003/pos.x*(0.15 + sin(time*0.04+pos.x*3.5));
-     
+
     float t = mod(time*0.1, 2.0) + 440.0;
     float x = mod(pos.x + t, so);
     float y = mod(pos.y + t, so*2.0);
     float d1 = mod( distance( vec2(x,y), vec2(so*0.45,so*1.05) ) + t*0.5, 0.05) * 3.0 + pos.x * 0.5;
     float d2 = mod( distance( vec2(x,y), vec2(so*0.55,so*0.95) ) + t*0.5, 0.015) * 3.0;
-    
+
     if ((x-0.03 < sd) && (y-0.03 < sd*2.0))
     if ((x < sd) && (y < sd*2.0))
         col = vec3(0.2, 0.6, mix(d1, d2, 0.8) );
     else
         col = vec3(0.72, 0.25, pos.y * 0.06 + 0.3);
-    
+
 
     float l = length(mod(t* 0.1 + col * distance(pos,vec2(pos.y,0.0)) ,0.02)*27.5); 
-        
+
     if ((pos.y>0.1) && (pos.y < 0.9))
         gl_FragColor = vec4( l,l,l, 1.0 );
     else
@@ -108,11 +107,11 @@ var cm = CodeMirror(function(elt) {
 });
 
 function parseEditorContent() {
-    source = new GLSL.SourceCode(cm.getValue());
+    source = cm.getValue();
 
     try {
         while (resultNode.hasChildNodes()) { resultNode.removeChild(resultNode.lastChild); }
-        var tree = GLSL.parse(source.text);
+        var tree = GLSL.Parser.parse(source);
 
         var printer = new GLSL.PrettyPrinter();
         resultNode.appendChild(document.createTextNode(printer.formattedText(tree)));
