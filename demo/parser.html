@@ -107,16 +107,14 @@ var cm = CodeMirror(function(elt) {
 });
 
 function parseEditorContent() {
-    source = cm.getValue();
-
     try {
         while (resultNode.hasChildNodes()) { resultNode.removeChild(resultNode.lastChild); }
-        var tree = GLSL.Parser.parse(source);
 
+        var shader = new GLSL.Shader(cm.getValue(), GLSL.Shader.Type.Fragment);
         var printer = new GLSL.PrettyPrinter();
-        resultNode.appendChild(document.createTextNode(printer.formattedText(tree)));
+        resultNode.appendChild(document.createTextNode(printer.formattedText(shader.ast)));
 
-        resultNode.appendChild(document.createTextNode(jsDump.parse(tree)));
+        resultNode.appendChild(document.createTextNode(jsDump.parse(shader.ast)));
 
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
