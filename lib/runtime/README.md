@@ -26,16 +26,17 @@ Week of 11/24/14 -- 11/30/14
 * [x] Make getters and setters work
 * [x] Make casting (for vec? and mat?) work, from both low to high dimensions and high to low dimensions
 * [x] Construct vec and mat by using a single value
-* Make built-in functions work for vec?
-* Testing framework
+* [ ] Make built-in functions work for vec?
+* [ ] Implement op.js build-in functions
+* [ ] Testing framework
 
 Week of 12/1/14 -- 12/7/14
 
-* Implement texture lookup functions
-* Implement Vertex/Fragment shader special variables
-* Test thoroughly
+* [ ] Implement texture lookup functions
+* [ ] Implement Vertex/Fragment shader special variables
+* [ ] Test thoroughly
 
 Week of 12/8/14 -- 12/12/14
 
-* Demo
-* Writeups
+* [ ] Demo
+* [ ] Writeups
