@@ -23,9 +23,9 @@ Here are a set of our APIs that are different from the GLSL shader language.
 
 Week of 11/24/14 -- 11/30/14
 
-* Make getters and setters work
-* Make casting (for vec? and mat?) work, from both low to high dimensions and high to low dimensions
-* Construct vec and mat by using a single value
+* [x] Make getters and setters work
+* [x] Make casting (for vec? and mat?) work, from both low to high dimensions and high to low dimensions
+* [x] Construct vec and mat by using a single value
 * Make built-in functions work for vec?
 * Testing framework
 
