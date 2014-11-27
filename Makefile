@@ -11,6 +11,7 @@ MODULES = compiler/ast                          \
           compiler/visitor                      \
           compiler/pretty                       \
           compiler/parser                       \
+          compiler/shader                       \
           glsl
 
 # ===== Directories =====
