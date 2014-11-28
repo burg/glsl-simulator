@@ -26,7 +26,7 @@ Week of 11/24/14 -- 11/30/14
 * [x] Make getters and setters work
 * [x] Make casting (for vec? and mat?) work, from both low to high dimensions and high to low dimensions
 * [x] Construct vec and mat by using a single value
-* [ ] Make built-in functions work for vec?
+* [x] Make built-in functions work for vec?
 * [ ] Implement op.js build-in functions
 * [ ] Testing framework
 
