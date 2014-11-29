@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>glsl-simulator: lexer</title>
+<title>glsl-simulator: parser</title>
 <link rel="stylesheet" href="lib/codemirror.css">
 <script src="../browser/glsl-simulator-0.1.0.js"></script>
 <script src="lib/codemirror.js"></script>
@@ -9,9 +9,13 @@
 
 <style type="text/css">
 #container {
+    display: flex;
     display: -webkit-flex;
+    flex-direction: row;
     -webkit-flex-direction: row;
+    flex-wrap: nowrap;
     -webkit-flex-wrap: nowrap;
+    justify: space-around;
     -webkit-justify: space-around;
 
     position: absolute;
