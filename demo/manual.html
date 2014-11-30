@@ -34,7 +34,48 @@
 .input-row {
     display: -webkit-flex;
     display: flex;
-    height: 30px;
+    -webkit-align-items: center;
+    align-items: center;
+
+    border-bottom: 1px solid #eee;
+}
+
+.input-row.out {
+    background-color: #eee;
+}
+
+span.variable-usage {
+    text-transform: uppercase;
+    text-align: center;
+    font-family: Arial;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    background-color: #fff;
+
+    border-radius: 4px;
+    border: solid 2px #ccc;
+
+    margin: 0px 5px;
+    padding: 2px;
+    width: 25px;
+}
+
+span.variable-qualifier {
+    text-transform: uppercase;
+    text-align: center;
+    font-family: Arial;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    background-color: #fff;
+
+    border-radius: 4px;
+    border: solid 2px #ccc;
+
+    padding: 2px;
+    margin: 0px 5px;
+    width: 50px;
 }
 
 span.input-label {
@@ -46,10 +87,53 @@ span.input-label {
     font-family: Myriad Pro, Helvetica, sans-serif;
 }
 
+span.input-label.builtin {
+    font-style: italic;
+}
+
+span.type-label {
+    font-family: Arial;
+    font-size: 10px;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    padding: 2px;
+}
+
+span.type-label:matches(.float) {
+    background-color: rgb(166, 171, 183);
+    border: solid 2px rgb(86, 100, 138);
+    text-shadow: 1px 1px 2px rgb(86, 100, 138);
+}
+
+span.type-label:matches(.vec2, .vec3, .vec4) {
+    background-color: rgb(149, 192, 148);
+    border: solid 2px rgb(100, 137, 97);
+    text-shadow: 1px 1px 2px rgb(100, 137, 97);
+}
+
+span.type-label:matches(.mat2, .mat3, .mat4) {
+    background-color: rgb(171, 143, 186);
+    border: solid 2px rgb(119, 94, 131);
+    text-shadow: 1px 1px 2px rgb(119, 94, 131);
+}
+
+table.input-cells {
+    font-family: monospace;
+    font-size: 16px;
+}
+
 table.input-cells input[type="number"] {
-    font-size: 14px;
+    font-size: 12px;
     font-family: Menlo, monospace;
-    width: 6em;
+    width: 4em;
+}
+
+/* Disable the number spinner arrow things on elements. It's dumb. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 #shader-editor {
@@ -181,10 +265,25 @@ var inputs = {};
 function populateVariableEditor(shader) {
     function makeInput(variable) {
         var inputRow = document.createElement("div");
-        inputRow.classList.add("input-row");
+        inputRow.classList.add("input-row", variable.usage);
+
+        var usageLabel = inputRow.appendChild(document.createElement("span"));
+        usageLabel.classList.add("variable-usage", variable.usage);
+        usageLabel.textContent = variable.usage;
+
+        var qualifierLabel = inputRow.appendChild(document.createElement("span"));
+        qualifierLabel.classList.add("variable-qualifier", variable.qualifier);
+        qualifierLabel.textContent = variable.qualifier;
+
         var label = inputRow.appendChild(document.createElement("span"));
         label.classList.add("input-label");
+        if (variable.builtin)
+            label.classList.add("builtin");
         label.textContent = variable.name;
+
+        var typeLabel = inputRow.appendChild(document.createElement("span"));
+        typeLabel.classList.add(variable.type, "type-label");
+        typeLabel.textContent = variable.type;
 
         var form = inputRow.appendChild(document.createElement("table"));
         form.classList.add("input-cells");
@@ -198,6 +297,8 @@ function populateVariableEditor(shader) {
         case "vec3":  colCount = 3; break;
         case "vec4":  colCount = 4; break;
         case "mat2":  colCount = 2; rowCount = 2; break;
+        case "mat3":  colCount = 3; rowCount = 3; break;
+        case "mat4":  colCount = 4; rowCount = 4; break;
         default: break;
         }
 
@@ -207,13 +308,23 @@ function populateVariableEditor(shader) {
             var row = document.createElement("tr");
             for (var j = 0; j < colCount; ++j) {
                 var cell = document.createElement("td");
+                if (j == 0)
+                    cell.appendChild(document.createTextNode(i == 0 && colCount > 1 ? "[" : "\u00A0"));
+
                 var input = cell.appendChild(document.createElement("input"));
                 input.type = "number";
                 input.maxLength = 5;
                 input.placeholder = "0.0";
+                if (variable.usage === "out")
+                    input.readOnly = true;
                 elements.push(input);
+                if (j < colCount - 1)
+                    cell.appendChild(document.createTextNode(","));
+                else if (colCount > 1 && i == rowCount - 1)
+                    cell.appendChild(document.createTextNode("]"))
                 row.appendChild(cell);
             }
+
             form.appendChild(row);
         }
 
