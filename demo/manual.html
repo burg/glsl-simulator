@@ -31,6 +31,27 @@
     height: 30%;
 }
 
+.input-row {
+    display: -webkit-flex;
+    display: flex;
+    height: 30px;
+}
+
+span.input-label {
+    width: 20%;
+    text-align: right;
+    line-height: 34px;
+    padding-right: 10px;
+    font-size: 18px;
+    font-family: Myriad Pro, Helvetica, sans-serif;
+}
+
+table.input-cells input[type="number"] {
+    font-size: 14px;
+    font-family: Menlo, monospace;
+    width: 6em;
+}
+
 #shader-editor {
     border: solid 3px #c99;
     height: 70%;
@@ -163,7 +184,7 @@ function populateVariableEditor(shader) {
         inputRow.classList.add("input-row");
         var label = inputRow.appendChild(document.createElement("span"));
         label.classList.add("input-label");
-        label.textContext = variable.name;
+        label.textContent = variable.name;
 
         var form = inputRow.appendChild(document.createElement("table"));
         form.classList.add("input-cells");
@@ -187,11 +208,19 @@ function populateVariableEditor(shader) {
             for (var j = 0; j < colCount; ++j) {
                 var cell = document.createElement("td");
                 var input = cell.appendChild(document.createElement("input"));
-                input.type = "text";
+                input.type = "number";
+                input.maxLength = 5;
+                input.placeholder = "0.0";
                 elements.push(input);
                 row.appendChild(cell);
             }
             form.appendChild(row);
+        }
+
+        if (variable.name in inputs) {
+            var existingValue = inputs[variable.name];
+            for (var i = 0; i < elements.length; ++i)
+                elements[i].value = existingValue[i];
         }
 
         function cellValueDidChange(event) {
@@ -203,8 +232,8 @@ function populateVariableEditor(shader) {
                 value = elements[0].value;
             } else {
                 var value = [];
-                for (var elemi = 0; elemi < elements.length; ++elemi)
-                    value.push(elemi.value);
+                for (var i = 0; i < elements.length; ++i)
+                    value.push(elements[i].value);
             }
 
             inputs[variable.name] = value;
