@@ -20,15 +20,37 @@
 
     position: absolute;
     top: 0; right: 0; bottom: 0; left: 0;
+    overflow: none;
 }
 
 #container > div {
     width: 50%;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+    flex-wrap: nowrap;
+    -webkit-flex-wrap: nowrap;
 }
 
 #variable-editor {
     border: solid 3px #99c;
     height: 30%;
+    overflow-y: scroll;
+}
+
+#shader-editor {
+    border: solid 3px #c99;
+    height: 70%;
+}
+
+#right-side {
+    border: solid 3px #9c9;
+    padding: 5px;
+    font-family: Menlo, monospace;
+    font-size: 12px;
+    overflow: scroll;
+    white-space: pre;
 }
 
 .input-row {
@@ -100,19 +122,23 @@ span.type-label {
     padding: 2px;
 }
 
-span.type-label:matches(.float) {
+span.type-label.float {
     background-color: rgb(166, 171, 183);
     border: solid 2px rgb(86, 100, 138);
     text-shadow: 1px 1px 2px rgb(86, 100, 138);
 }
 
-span.type-label:matches(.vec2, .vec3, .vec4) {
+span.type-label.vec2,
+span.type-label.vec3,
+span.type-label.vec4 {
     background-color: rgb(149, 192, 148);
     border: solid 2px rgb(100, 137, 97);
     text-shadow: 1px 1px 2px rgb(100, 137, 97);
 }
 
-span.type-label:matches(.mat2, .mat3, .mat4) {
+span.type-label.mat2,
+span.type-label.mat3,
+span.type-label.mat4 {
     background-color: rgb(171, 143, 186);
     border: solid 2px rgb(119, 94, 131);
     text-shadow: 1px 1px 2px rgb(119, 94, 131);
@@ -135,34 +161,20 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
-#shader-editor {
-    border: solid 3px #c99;
-    height: 70%;
-    overflow: scroll;
-}
-
-#results-pane {
-    border: solid 3px #9c9;
-    font-family: Menlo, monospace;
-    font-size: 12px;
-    overflow: scroll;
-    white-space: pre;
-}
 </style>
 
 </head>
 <body>
 
 <div id="container">
-<div id="inputs">
-<div id="variable-editor">
-<form>
-<div id="variable-list">
-</div>
-</form>
-</div>
-<div id="shader-editor">
+<div id="left-side">
+    <div id="variable-editor">
+    <form>
+    <div id="variable-list">
+    </div>
+    </form>
+    </div>
+    <div id="shader-editor">
 // Sample shader from: http://glslsandbox.com/e#21330.5
 
 /* Here's a block
@@ -206,16 +218,16 @@ void main( void ) {
     else
         gl_FragColor = vec4( 0.9,0.9,0.9, 1.0);
 }
+    </div>
 </div>
-</div>
-<div id="results-pane">
+<div id="right-side">
 No results yet.
 </div>
 </div>
 
 <script type="text/javascript">
 var editorNode = document.getElementById("shader-editor");
-var resultNode = document.getElementById("results-pane");
+var resultNode = document.getElementById("right-side");
 
 var cm = CodeMirror(function(elt) {
     editorNode.parentNode.replaceChild(elt, editorNode);
