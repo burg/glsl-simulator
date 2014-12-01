@@ -33,15 +33,32 @@
     -webkit-flex-wrap: nowrap;
 }
 
+#shader-header {
+    height: 30px;
+    font: 14px Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    line-height: 28px;
+    text-transform: uppercase;
+    padding-left: 20px;
+
+    position: relative;
+}
+
+#shader-selector {
+    position: absolute;
+    right: 5px;
+    margin: 5px 0;
+}
+
 #variable-editor {
     border: solid 3px #99c;
-    height: 30%;
+    height: 200px;
     overflow-y: scroll;
 }
 
 #shader-editor {
     border: solid 3px #c99;
-    height: 70%;
+    height: 75%;
 }
 
 #right-side {
@@ -165,16 +182,36 @@ input[type="number"]::-webkit-outer-spin-button {
 
 </head>
 <body>
-
+    <form>
 <div id="container">
 <div id="left-side">
+    <div id="shader-header">
+    GLSL Simulator Demo
+    <select name="shader-selector" id="shader-selector">
+    </select>
+    </div>
     <div id="variable-editor">
-    <form>
     <div id="variable-list">
     </div>
-    </form>
     </div>
     <div id="shader-editor">
+    </div>
+</div>
+<div id="right-side">
+No results yet.
+</div>
+</form>
+</div>
+
+<script type="x-glsl-vshader" id="sample-vertex-shader">
+varying vec2 position;
+
+void main()
+{
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+</script>
+<script type="x-glsl-fshader" id="sample-fragment-shader">
 // Sample shader from: http://glslsandbox.com/e#21330.5
 
 /* Here's a block
@@ -218,16 +255,16 @@ void main( void ) {
     else
         gl_FragColor = vec4( 0.9,0.9,0.9, 1.0);
 }
-    </div>
-</div>
-<div id="right-side">
-No results yet.
-</div>
-</div>
+</script>
 
 <script type="text/javascript">
 var editorNode = document.getElementById("shader-editor");
 var resultNode = document.getElementById("right-side");
+var shaderSelector = document.getElementById("shader-selector");
+var program = new GLSL.Program();
+
+// Try to save inputs with same names across multiple edits.
+var inputs = {};
 
 var cm = CodeMirror(function(elt) {
     editorNode.parentNode.replaceChild(elt, editorNode);
@@ -239,27 +276,59 @@ var cm = CodeMirror(function(elt) {
 });
 
 /* TODO:
-
-- Provide a radio input to change shader type
-- Label each input row with name and type
-- Styles for the input boxes
-- Label each form row as "input" or "output" variable
 - When codegen result is available, provide inputs / run shader / read outputs
 */
-
-function shaderEditorContentChanged() {
+cm.on("changes", function shaderEditorContentChanged() {
     try {
-        var shader = new GLSL.Shader(cm.getValue(), GLSL.Shader.Type.Fragment);
+        var shader = new GLSL.Shader(cm.getValue(), editorNode.shaderType);
+        program.insertShader(shader);
         populateVariableEditor(shader);
         populateResults(shader);
     } catch (e) {
         resultNode.textContent = "ERROR: " + e.message;
     }
-}
+});
 
-function shaderInputsChanged(shader, inputMap) {
-    // TODO
-};
+window.addEventListener("load", function initEditors() {
+    try {
+    program.insertShader(new GLSL.Shader(document.getElementById("sample-vertex-shader").textContent, GLSL.Shader.Type.Vertex));
+    program.insertShader(new GLSL.Shader(document.getElementById("sample-fragment-shader").textContent, GLSL.Shader.Type.Fragment));
+    } catch (e) {
+        resultNode.textContent = "ERROR: " + e.message;
+    }
+
+    var option = null;
+    option = document.createElement("option");
+    option.text = "Vertex Shader";
+    option.value = GLSL.Shader.Type.Vertex;
+    shaderSelector.add(option, null);
+
+    option = document.createElement("option");
+    option.text = "Fragment Shader";
+    option.value = GLSL.Shader.Type.Fragment;
+    shaderSelector.add(option, null);
+
+    shaderSelector.addEventListener("change", shaderSelectorChanged);
+
+    // Select the fragment shader by default.
+    shaderSelector.options[1].selected = true;
+    // The above line won't trigger a "change" event, so fake it ourselves.
+    shaderSelectorChanged({ target: shaderSelector });
+});
+
+function shaderSelectorChanged(event) {
+    console.assert(event.target === shaderSelector, event.target);
+    console.assert(event.target.selectedIndex != -1, event.target);
+
+    var selectedShaderType = shaderSelector.options[shaderSelector.selectedIndex].value;
+    if (editorNode.shaderType === selectedShaderType)
+        return;
+
+    var selectedShader = program.shaderWithType(selectedShaderType);
+    // Do the swap.
+    editorNode.shaderType = selectedShaderType;
+    cm.setValue(selectedShader ? selectedShader.sourceText : "");
+}
 
 function populateResults(shader) {
         while (resultNode.hasChildNodes())
@@ -271,8 +340,9 @@ function populateResults(shader) {
 
 }
 
-// Try to save inputs with same names across multiple edits.
-var inputs = {};
+function shaderInputsChanged(shader, inputMap) {
+    // TODO
+};
 
 function populateVariableEditor(shader) {
     function makeInput(variable) {
@@ -384,9 +454,6 @@ function populateVariableEditor(shader) {
         attributes.map(function(v) { variablesNode.appendChild(makeInput(v)); });
 }
 
-cm.on("changes", shaderEditorContentChanged);
-
-shaderEditorContentChanged();
 </script>
 
 </body>
