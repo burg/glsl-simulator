@@ -424,7 +424,12 @@ window.addEventListener("load", function initEditors() {
     // The above line won't trigger a "change" event, so fake it ourselves.
     editorShaderSelectorChanged({ target: editorSelector });
 
-    editorNode.style.height = editorNode.parentElement.offsetHeight - 5 + "px";
+    function manuallyAdjustEditorHeight() {
+        editorNode.style.height = editorNode.parentElement.offsetHeight - 5 + "px";
+    }
+
+    window.addEventListener("resize", manuallyAdjustEditorHeight);
+    manuallyAdjustEditorHeight();
 });
 
 function editorShaderSelectorChanged(event) {
@@ -467,6 +472,9 @@ function populateVariableEditor(shader) {
         var typeLabel = inputRow.appendChild(document.createElement("span"));
         typeLabel.classList.add(variable.type, "type-label");
         typeLabel.textContent = variable.type;
+
+        // TODO: handle sampler2D and samplerCube seperately, by adding a
+        // file upload widget and thumbnail preview.
 
         var form = inputRow.appendChild(document.createElement("table"));
         form.classList.add("input-cells");
