@@ -40,14 +40,13 @@
     line-height: 28px;
     text-transform: uppercase;
     padding-left: 20px;
-
-    position: relative;
 }
 
-#shader-selector {
+#editor-selector {
     position: absolute;
-    right: 5px;
-    margin: 5px 0;
+    right: 20px;
+    top: 5px;
+    z-index: 1000;
 }
 
 #variable-editor {
@@ -59,15 +58,30 @@
 #shader-editor {
     border: solid 3px #c99;
     height: 75%;
+    position: relative;
 }
 
-#right-side {
+#shader-editor-stub {
+    height: 100%;
+}
+
+.results-viewer {
+    overflow: scroll;
     border: solid 3px #9c9;
-    padding: 5px;
+    position: relative;
+    height: 50%;
+}
+
+.results-viewer .output-options {
+    position: fixed;
+    right: 20px;
+    display: inline;
+}
+
+.results-viewer .output {
+    white-space: pre;
     font-family: Menlo, monospace;
     font-size: 12px;
-    overflow: scroll;
-    white-space: pre;
 }
 
 .input-row {
@@ -187,18 +201,31 @@ input[type="number"]::-webkit-outer-spin-button {
 <div id="left-side">
     <div id="shader-header">
     GLSL Simulator Demo
-    <select name="shader-selector" id="shader-selector">
-    </select>
     </div>
     <div id="variable-editor">
     <div id="variable-list">
     </div>
     </div>
     <div id="shader-editor">
+    <select name="editor-selector" id="editor-selector">
+    </select>
+    <div id="shader-editor-stub">
+    </div>
     </div>
 </div>
 <div id="right-side">
-No results yet.
+<div class="results-viewer" id="results-top">
+<span class="output-options">
+    <select id="results-top-shader-selector"></select>
+    <select id="results-top-output-selector"></select>
+</span>
+</div>
+<div class="results-viewer" id="results-bottom">
+<span class="output-options">
+    <select id="results-bottom-shader-selector"></select>
+    <select id="results-bottom-output-selector"></select>
+</span>
+</div>
 </div>
 </form>
 </div>
@@ -258,22 +285,87 @@ void main( void ) {
 </script>
 
 <script type="text/javascript">
-var editorNode = document.getElementById("shader-editor");
-var resultNode = document.getElementById("right-side");
-var shaderSelector = document.getElementById("shader-selector");
+
+var OutputPane = function(which) {
+    this.resultsPane = document.getElementById("results-" + which);
+    this.shaderSelector = document.getElementById("results-" + which + "-shader-selector");
+    this.outputSelector = document.getElementById("results-" + which + "-output-selector");
+    this.outputElement = null;
+
+    var option = null;
+    option = document.createElement("option");
+    option.text = "Vertex Shader";
+    option.value = GLSL.Shader.Type.Vertex;
+    this.shaderSelector.add(option, null);
+
+    option = document.createElement("option");
+    option.text = "Fragment Shader";
+    option.value = GLSL.Shader.Type.Fragment;
+    this.shaderSelector.add(option, null);
+
+    option = document.createElement("option");
+    option.text = "Shader AST";
+    option.value = "ast";
+    this.outputSelector.add(option, null);
+
+    option = document.createElement("option");
+    option.text = "Pretty Printer";
+    option.value = "pretty";
+    this.outputSelector.add(option, null);
+
+    this.shaderSelector.addEventListener("change", this.refresh.bind(this));
+    this.outputSelector.addEventListener("change", this.refresh.bind(this));
+};
+
+OutputPane.prototype = {
+    refresh: function()
+    {
+        if (this.outputElement)
+            this.resultsPane.removeChild(this.outputElement);
+
+        var selectedShaderType = this.shaderSelector.options[this.shaderSelector.selectedIndex].value;
+        var shader = program.shaderWithType(selectedShaderType);
+
+        var selectedOutputType = this.outputSelector.options[this.outputSelector.selectedIndex].value;
+        this.outputElement = document.createElement("span");
+        this.outputElement.classList.add("output");
+
+        switch (selectedOutputType) {
+        case "ast":
+            this.outputElement.appendChild(document.createTextNode(jsDump.parse(shader.ast)));
+        break;
+
+        case "pretty":
+        default:
+            var printer = new GLSL.PrettyPrinter();
+            this.outputElement.appendChild(document.createTextNode(printer.formattedText(shader.ast)));
+        break;
+        }
+
+        this.resultsPane.appendChild(this.outputElement);
+    }
+}
+
+var cm = CodeMirror(function(elt) {
+    var editorNode = document.getElementById("shader-editor-stub");
+    editorNode.parentNode.replaceChild(elt, editorNode);
+    elt.id = editorNode.id;
+}, {
+    value: "",
+    mode: "glsl",
+    lineNumbers: true
+});
+
+var editorNode = document.getElementById("shader-editor-stub");
+var editorSelector = document.getElementById("editor-selector");
+
+var resultsTop = new OutputPane("top");
+var resultsBottom = new OutputPane("bottom");
+
 var program = new GLSL.Program();
 
 // Try to save inputs with same names across multiple edits.
 var inputs = {};
-
-var cm = CodeMirror(function(elt) {
-    editorNode.parentNode.replaceChild(elt, editorNode);
-    elt.id = editorNode.id;
-}, {
-    value: editorNode.textContent,
-    mode: "glsl",
-    lineNumbers: true
-});
 
 /* TODO:
 - When codegen result is available, provide inputs / run shader / read outputs
@@ -283,44 +375,50 @@ cm.on("changes", function shaderEditorContentChanged() {
         var shader = new GLSL.Shader(cm.getValue(), editorNode.shaderType);
         program.insertShader(shader);
         populateVariableEditor(shader);
-        populateResults(shader);
+        resultsTop.refresh();
+        resultsBottom.refresh();
     } catch (e) {
-        resultNode.textContent = "ERROR: " + e.message;
+        resultsTop.outputElement.textContent = "ERROR: " + e.message;
     }
 });
 
 window.addEventListener("load", function initEditors() {
+    // Initialize shaders with examples.
     try {
     program.insertShader(new GLSL.Shader(document.getElementById("sample-vertex-shader").textContent, GLSL.Shader.Type.Vertex));
     program.insertShader(new GLSL.Shader(document.getElementById("sample-fragment-shader").textContent, GLSL.Shader.Type.Fragment));
     } catch (e) {
-        resultNode.textContent = "ERROR: " + e.message;
+        resultsTop.outputElement.textContent = "ERROR: " + e.message;
     }
 
-    var option = null;
-    option = document.createElement("option");
-    option.text = "Vertex Shader";
-    option.value = GLSL.Shader.Type.Vertex;
-    shaderSelector.add(option, null);
+    [editorSelector].map(function populateShaderOptions(selector) {
+        var option = null;
+        option = document.createElement("option");
+        option.text = "Vertex Shader";
+        option.value = GLSL.Shader.Type.Vertex;
+        selector.add(option, null);
 
-    option = document.createElement("option");
-    option.text = "Fragment Shader";
-    option.value = GLSL.Shader.Type.Fragment;
-    shaderSelector.add(option, null);
+        option = document.createElement("option");
+        option.text = "Fragment Shader";
+        option.value = GLSL.Shader.Type.Fragment;
+        selector.add(option, null);
+    });
 
-    shaderSelector.addEventListener("change", shaderSelectorChanged);
+    editorSelector.addEventListener("change", editorShaderSelectorChanged);
 
     // Select the fragment shader by default.
-    shaderSelector.options[1].selected = true;
+    editorSelector.options[1].selected = true;
     // The above line won't trigger a "change" event, so fake it ourselves.
-    shaderSelectorChanged({ target: shaderSelector });
+    editorShaderSelectorChanged({ target: editorSelector });
+
+    editorNode.style.height = editorNode.parentElement.offsetHeight - 5 + "px";
 });
 
-function shaderSelectorChanged(event) {
-    console.assert(event.target === shaderSelector, event.target);
+function editorShaderSelectorChanged(event) {
+    console.assert(event.target === editorSelector, event.target);
     console.assert(event.target.selectedIndex != -1, event.target);
 
-    var selectedShaderType = shaderSelector.options[shaderSelector.selectedIndex].value;
+    var selectedShaderType = editorSelector.options[editorSelector.selectedIndex].value;
     if (editorNode.shaderType === selectedShaderType)
         return;
 
@@ -328,16 +426,6 @@ function shaderSelectorChanged(event) {
     // Do the swap.
     editorNode.shaderType = selectedShaderType;
     cm.setValue(selectedShader ? selectedShader.sourceText : "");
-}
-
-function populateResults(shader) {
-        while (resultNode.hasChildNodes())
-            resultNode.removeChild(resultNode.lastChild);
-        var printer = new GLSL.PrettyPrinter();
-        resultNode.appendChild(document.createTextNode(printer.formattedText(shader.ast)));
-
-        resultNode.appendChild(document.createTextNode(jsDump.parse(shader.ast)));
-
 }
 
 function shaderInputsChanged(shader, inputMap) {
