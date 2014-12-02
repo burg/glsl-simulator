@@ -231,7 +231,7 @@ input[type="number"]::-webkit-outer-spin-button {
 </div>
 
 <script type="x-glsl-vshader" id="sample-vertex-shader">
-varying vec2 position;
+attribute vec2 position;
 
 void main()
 {
@@ -536,10 +536,11 @@ function populateVariableEditor(shader) {
 
     // TODO: add a divider and section label?
     uniforms.map(function(v) { variablesNode.appendChild(makeInput(v)); });
-    if (shader.type == GLSL.Shader.Type.Fragment)
-        varyings.map(function(v) { variablesNode.appendChild(makeInput(v)); });
-    else
+
+    if (shader.type === GLSL.Shader.Type.Vertex)
         attributes.map(function(v) { variablesNode.appendChild(makeInput(v)); });
+
+    varyings.map(function(v) { variablesNode.appendChild(makeInput(v)); });
 }
 
 </script>
