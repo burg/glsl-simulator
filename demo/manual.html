@@ -303,7 +303,8 @@ var OutputPane = function(which) {
     this.resultsPane = document.getElementById("results-" + which);
     this.shaderSelector = document.getElementById("results-" + which + "-shader-selector");
     this.outputSelector = document.getElementById("results-" + which + "-output-selector");
-    this.outputElement = null;
+    this.outputElement = this.resultsPane.appendChild(document.createElement("span"));
+    this.outputElement.classList.add("output");
 
     var option = null;
     option = document.createElement("option");
@@ -326,6 +327,11 @@ var OutputPane = function(which) {
     option.value = "pretty";
     this.outputSelector.add(option, null);
 
+    option = document.createElement("option");
+    option.text = "Generated JavaScript";
+    option.value = "codegen";
+    this.outputSelector.add(option, null);
+
     this.shaderSelector.addEventListener("change", this.refresh.bind(this));
     this.outputSelector.addEventListener("change", this.refresh.bind(this));
 };
@@ -346,6 +352,10 @@ OutputPane.prototype = {
         switch (selectedOutputType) {
         case "ast":
             this.outputElement.appendChild(document.createTextNode(jsDump.parse(shader.ast)));
+        break;
+
+        case "codegen":
+            this.outputElement.appendChild(document.createTextNode(shader.executable.toString()));
         break;
 
         case "pretty":

@@ -10,12 +10,12 @@ GLSL_SIMULATOR_VERSION = `cat $(VERSION_FILE)`
 MODULES = compiler/ast                          \
           compiler/visitor                      \
           compiler/pretty                       \
-          compiler/parser                       \
           compiler/environment                  \
+          compiler/codegen                      \
+          compiler/parser                       \
           compiler/shader                       \
           compiler/program                      \
           compiler/typecheck                    \
-          compiler/codegen                      \
           runtime/access                        \
           runtime/angle                         \
           runtime/common                        \
@@ -25,7 +25,8 @@ MODULES = compiler/ast                          \
           runtime/vecfunc                       \
           runtime/vector                        \
           runtime                               \
-          glsl
+          glsl                                  \
+
 
 # ===== Directories =====
 
