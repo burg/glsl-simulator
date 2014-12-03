@@ -16,6 +16,15 @@ MODULES = compiler/ast                          \
           compiler/program                      \
           compiler/typecheck                    \
           compiler/codegen                      \
+          runtime/access                        \
+          runtime/angle                         \
+          runtime/common                        \
+          runtime/exponential                   \
+          runtime/geometric                     \
+          runtime/matrix                        \
+          runtime/vecfunc                       \
+          runtime/vector                        \
+          runtime                               \
           glsl
 
 # ===== Directories =====
