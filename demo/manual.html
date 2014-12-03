@@ -76,12 +76,17 @@
     position: fixed;
     right: 20px;
     display: inline;
+    z-index: 1000;
 }
 
 .results-viewer .output {
     white-space: pre;
     font-family: Menlo, monospace;
     font-size: 12px;
+
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 0; right: 0;
 }
 
 .input-row {
@@ -199,6 +204,11 @@ table.input-cells input[type="number"] {
     width: 4em;
 }
 
+.inverted {
+    filter: invert(100%);
+    -webkit-filter: invert(100%);
+}
+
 /* Disable the number spinner arrow things on elements. It's dumb. */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
@@ -213,7 +223,7 @@ input[type="number"]::-webkit-outer-spin-button {
 <div id="container">
 <div id="left-side">
     <div id="shader-header">
-    GLSL Simulator Demo
+    GLSL Simulator Demo: Single Execution
     </div>
     <div id="variable-editor">
     <div id="variable-list">
@@ -332,6 +342,11 @@ var OutputPane = function(which) {
     option.value = "codegen";
     this.outputSelector.add(option, null);
 
+    option = document.createElement("option");
+    option.text = "Fragment Color";
+    option.value = "fragcolor";
+    this.outputSelector.add(option, null);
+
     this.shaderSelector.addEventListener("change", this.refresh.bind(this));
     this.outputSelector.addEventListener("change", this.refresh.bind(this));
 };
@@ -346,7 +361,7 @@ OutputPane.prototype = {
         var shader = program.shaderWithType(selectedShaderType);
 
         var selectedOutputType = this.outputSelector.options[this.outputSelector.selectedIndex].value;
-        this.outputElement = document.createElement("span");
+        this.outputElement = this.resultsPane.appendChild(document.createElement("span"));
         this.outputElement.classList.add("output");
 
         switch (selectedOutputType) {
@@ -358,14 +373,27 @@ OutputPane.prototype = {
             this.outputElement.appendChild(document.createTextNode(shader.executable.toString()));
         break;
 
+        case "fragcolor":
+            var exe = shader.executable;
+            var env = {};
+            exe.call(null, GLSL.Runtime, env);
+
+            var color = env['gl_FragColor'];
+            var colorString = "rgba(" + [color.get('r'), color.get('g'), color.get('b'), color.get('a')].join(", ") + ")";
+            console.log("output color: " + color);
+            this.outputElement.style.backgroundColor = colorString;
+            this.outputElement.style.webkitFilter = "invert(100%);"
+            var text = this.outputElement.appendChild(document.createElement("span"));
+            text.classList.add("inverted");
+            text.textContent = "gl_FragColor = " + colorString;
+        break;
+
         case "pretty":
         default:
             var printer = new GLSL.PrettyPrinter();
             this.outputElement.appendChild(document.createTextNode(printer.formattedText(shader.ast)));
         break;
         }
-
-        this.resultsPane.appendChild(this.outputElement);
     }
 }
 
