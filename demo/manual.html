@@ -89,7 +89,7 @@
     left: 0; right: 0;
 }
 
-.input-row {
+.variable-row {
     display: -webkit-flex;
     display: flex;
     -webkit-align-items: center;
@@ -98,7 +98,7 @@
     border-bottom: 1px solid #e0e0e0;
 }
 
-.input-row.out {
+.variable-row.out {
     background-color: #f5f5f5;
 }
 
@@ -148,7 +148,7 @@ span.variable-qualifier {
     color: #3288bd;
 }
 
-span.input-label {
+span.variable-label {
     width: 20%;
     text-align: right;
     line-height: 25px;
@@ -158,11 +158,11 @@ span.input-label {
     font-family: Myriad Pro, Helvetica, sans-serif;
 }
 
-span.input-label.builtin {
+span.variable-label.builtin {
     font-style: italic;
 }
 
-span.type-label {
+span.variable-type {
     font-family: Arial;
     font-size: 10px;
     border-radius: 4px;
@@ -171,34 +171,34 @@ span.type-label {
     padding: 2px;
 }
 
-span.type-label.float {
+span.variable-type.float {
     background-color: rgb(166, 171, 183);
     border: solid 2px rgb(86, 100, 138);
     text-shadow: 1px 1px 2px rgb(86, 100, 138);
 }
 
-span.type-label.vec2,
-span.type-label.vec3,
-span.type-label.vec4 {
+span.variable-type.vec2,
+span.variable-type.vec3,
+span.variable-type.vec4 {
     background-color: rgb(149, 192, 148);
     border: solid 2px rgb(100, 137, 97);
     text-shadow: 1px 1px 2px rgb(100, 137, 97);
 }
 
-span.type-label.mat2,
-span.type-label.mat3,
-span.type-label.mat4 {
+span.variable-type.mat2,
+span.variable-type.mat3,
+span.variable-type.mat4 {
     background-color: rgb(171, 143, 186);
     border: solid 2px rgb(119, 94, 131);
     text-shadow: 1px 1px 2px rgb(119, 94, 131);
 }
 
-table.input-cells {
+table.variable-cells {
     font-family: monospace;
     font-size: 16px;
 }
 
-table.input-cells input[type="number"] {
+table.variable-cells input[type="number"] {
     font-size: 12px;
     font-family: Menlo, monospace;
     width: 4em;
@@ -414,9 +414,14 @@ var resultsTop = new OutputPane("top");
 var resultsBottom = new OutputPane("bottom");
 
 var program = new GLSL.Program();
+var previousInputs = {};
 
-// Try to save inputs with same names across multiple edits.
-var inputs = {};
+// env is discarded rebuilt whenever the shader text changes.
+// Else, we directly read and write variable values in the object.
+var env = {};
+
+// from Shader instance to the last result (an object containing output variables).
+var results = new Map;
 
 /* TODO:
 - When codegen result is available, provide inputs / run shader / read outputs
@@ -485,37 +490,37 @@ function editorShaderSelectorChanged(event) {
 }
 
 function shaderInputsChanged(shader, inputMap) {
-    // TODO
+    // TODO: update the env
 };
 
 function populateVariableEditor(shader) {
-    function makeInput(variable) {
-        var inputRow = document.createElement("div");
-        inputRow.classList.add("input-row", variable.usage);
+    function makeVariableRow(variable) {
+        var variableRow = document.createElement("div");
+        variableRow.classList.add("variable-row", variable.usage);
 
-        var usageLabel = inputRow.appendChild(document.createElement("span"));
+        var usageLabel = variableRow.appendChild(document.createElement("span"));
         usageLabel.classList.add("variable-usage", variable.usage);
         usageLabel.textContent = variable.usage;
 
-        var qualifierLabel = inputRow.appendChild(document.createElement("span"));
+        var qualifierLabel = variableRow.appendChild(document.createElement("span"));
         qualifierLabel.classList.add("variable-qualifier", variable.qualifier);
         qualifierLabel.textContent = variable.qualifier;
 
-        var label = inputRow.appendChild(document.createElement("span"));
-        label.classList.add("input-label");
+        var label = variableRow.appendChild(document.createElement("span"));
+        label.classList.add("variable-label");
         if (variable.builtin)
             label.classList.add("builtin");
         label.textContent = variable.name;
 
-        var typeLabel = inputRow.appendChild(document.createElement("span"));
-        typeLabel.classList.add(variable.type, "type-label");
+        var typeLabel = variableRow.appendChild(document.createElement("span"));
+        typeLabel.classList.add(variable.type, "variable-type");
         typeLabel.textContent = variable.type;
 
         // TODO: handle sampler2D and samplerCube seperately, by adding a
         // file upload widget and thumbnail preview.
 
-        var form = inputRow.appendChild(document.createElement("table"));
-        form.classList.add("input-cells");
+        var cellTable = variableRow.appendChild(document.createElement("table"));
+        cellTable.classList.add("variable-cells");
 
         var rowCount = 1;
         var colCount = 1;
@@ -554,13 +559,15 @@ function populateVariableEditor(shader) {
                 row.appendChild(cell);
             }
 
-            form.appendChild(row);
+            cellTable.appendChild(row);
         }
 
-        if (variable.name in inputs) {
-            var existingValue = inputs[variable.name];
+        if (variable.usage === "in" && variable.name in previousInputs) {
+            var existingValue = previousInputs[variable.name];
             for (var i = 0; i < elements.length; ++i)
                 elements[i].value = existingValue[i];
+
+            env[variable.name] = previousInputs[variable.name];
         }
 
         function cellValueDidChange(event) {
@@ -576,12 +583,15 @@ function populateVariableEditor(shader) {
                     value.push(elements[i].value);
             }
 
-            inputs[variable.name] = value;
-            shaderInputsChanged(shader, inputs);
+            previousInputs[variable.name] = value;
+            env[variable.name] = value;
+            shaderInputsChanged();
         }
 
-        form.addEventListener("input", cellValueDidChange);
-        return inputRow;
+        if (variable.usage === "in")
+            cellTable.addEventListener("input", cellValueDidChange);
+
+        return variableRow;
     }
 
     var variablesNode = document.getElementById("variable-list");
@@ -594,12 +604,12 @@ function populateVariableEditor(shader) {
     var varyings = shader.varyings;
 
     // TODO: add a divider and section label?
-    uniforms.map(function(v) { variablesNode.appendChild(makeInput(v)); });
+    uniforms.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
 
     if (shader.type === GLSL.Shader.Type.Vertex)
-        attributes.map(function(v) { variablesNode.appendChild(makeInput(v)); });
+        attributes.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
 
-    varyings.map(function(v) { variablesNode.appendChild(makeInput(v)); });
+    varyings.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
 }
 
 </script>
