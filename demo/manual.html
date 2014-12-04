@@ -298,7 +298,8 @@ void main( void ) {
 var DemoModel = function()
 {
     this._program = new GLSL.Program;
-    this.previousInputs = {};
+    // Map from "name_type" to previous GLSL value.
+    this._previousInputs = {};
     this.env = {};
     this.results = new Map;
 
@@ -314,6 +315,8 @@ DemoModel.Event = {
 DemoModel.prototype = {
     __proto__: GLSL.UI.Object.prototype,
     constructor: DemoModel,
+
+    // Public
 
     updateShaderWithType: function(shaderType, text)
     {
@@ -332,10 +335,24 @@ DemoModel.prototype = {
         return this._program.shaderWithType(shaderType);
     },
 
-    setInput: function(name, value)
+    getSuggestedVariableValue: function(variable)
     {
-        this.env[name] = value;
-        this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {name: name});
+        if (!variable || variable.readOnly)
+            return null;
+
+        var key = [variable.name, variable.type].join("_");
+        if (key in this._previousInputs)
+            return this._previousInputs[key];
+
+        return null;
+    },
+
+    setVariableValue: function(variable, value)
+    {
+        this.env[variable.name] = value;
+        var key = [variable.name, variable.type].join("_");
+        this._previousInputs[key] = value;
+        this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {variable: variable});
     },
 };
 
@@ -606,7 +623,7 @@ var VariableView = function(variable, suggestedValue) {
     }
 
     if (variable.usage === "in" && !!suggestedValue)
-        this.setValue(suggestedValue);
+        this.insertValue(suggestedValue);
 
     if (variable.usage === "in")
         cellTable.addEventListener("input", this._fieldInputChanged.bind(this));
@@ -622,7 +639,7 @@ VariableView.prototype = {
 
     // Public
 
-    setValue: function(value)
+    insertValue: function(value)
     {
         var dim = 4;
 
@@ -633,7 +650,7 @@ VariableView.prototype = {
         case "vec3": dim--;
         case "vec4":
             for (var i = 0; i < dim; ++i)
-                this._fields[i].value = value[i];
+                this._fields[i].value = value.d[i];
             break;
 
         case "vec2": dim--;
@@ -641,14 +658,14 @@ VariableView.prototype = {
         case "vec4":
             for (var i = 0; i < dim; ++i)
                 for (var j = 0; j < dim; ++j)
-                    this._fields[i * dim + j].value = value[i][j];
+                    this._fields[i * dim + j].value = value.d[i][j];
             break;
 
         default: break;
         }
     },
 
-    getValue: function()
+    extractValue: function()
     {
         var values = this._fields.map(function(f) { return parseFloat(f.value); });
         if (values.some(function(v) { return isNaN(v); }))
@@ -679,7 +696,9 @@ VariableView.prototype = {
         }
 
         cell.classList.add("valid-input");
-        this.dispatchEventToListeners(VariableView.Event.InputChanged);
+
+        if (this.extractValue() !== null) // Don't send an event unless all fields complete.
+            this.dispatchEventToListeners(VariableView.Event.InputChanged);
     }
 };
 
@@ -698,12 +717,7 @@ var VariableListView = function(model, shaderType) {
         return;
 
     function createVariable(variable) {
-        var suggestedValue = undefined;
-
-        if (!variable.readOnly && variable.name in this.model.previousInputs)
-            suggestedValue = this.model.previousInputs[variable.name];
-
-        var view = new VariableView(variable, suggestedValue);
+        var view = new VariableView(variable, this.model.getSuggestedVariableValue(variable));
         this._variableMap.set(variable, view);
         this.element.appendChild(view.element);
 
@@ -734,8 +748,7 @@ VariableListView.prototype = {
     _inputChanged: function(event)
     {
         var variableView = event.target;
-        var variable = variableView.variable;
-        this.model.setInput(variable.name, variableView.getValue());
+        this.model.setVariableValue(variableView.variable, variableView.extractValue());
     },
 
     _resultsChanged: function()
