@@ -57,12 +57,22 @@
 
 #shader-editor {
     border: solid 3px #c99;
-    height: 75%;
+    -webkit-flex-grow: 1;
+    flex-grow: 1;
     position: relative;
 }
 
 #shader-editor-stub {
     height: 100%;
+}
+
+.CodeMirror-scroll {
+  overflow: auto;
+  height: 100%;
+  /* This is needed to prevent an IE[67] bug where the scrolled content
+     is visible outside of the scrolling box. */
+  position: relative;
+  outline: none;
 }
 
 .results-viewer {
@@ -572,8 +582,16 @@ EditorView.prototype = {
 
     refresh: function()
     {
+        this.autosizeHeight();
+
         var selectedShader = this.model.shaderWithType(this.activeShaderType);
         this._cm.setValue(selectedShader ? selectedShader.sourceText : "");
+    },
+
+    autosizeHeight: function()
+    {
+        var allowedHeight = this.element.offsetHeight - 5 + "px";
+        document.getElementById("shader-editor-stub").style.height = allowedHeight;
     },
 
     // Private
@@ -824,17 +842,11 @@ window.addEventListener("load", function initEditors() {
         resultsTop.showErrorMessage(event.data.message);
     });
 
-    function manuallyAdjustEditorHeight() {
-        editor.element.style.height = editor.element.parentElement.offsetHeight - 5 + "px";
-    }
-
-    window.addEventListener("resize", manuallyAdjustEditorHeight);
+    window.addEventListener("resize", editor.autosizeHeight.bind(editor));
 
     model.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
     model.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
     editor.refresh();
-
-    manuallyAdjustEditorHeight();
 });
 
 </script>
