@@ -25,6 +25,7 @@ MODULES = compiler/ast                          \
           runtime/vecfunc                       \
           runtime/vector                        \
           runtime                               \
+          ui                                    \
           glsl                                  \
 
 

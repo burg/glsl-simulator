@@ -49,7 +49,7 @@
     z-index: 1000;
 }
 
-#variable-editor {
+#variable-list {
     border: solid 3px #99c;
     height: 200px;
     overflow-y: scroll;
@@ -225,31 +225,8 @@ input[type="number"]::-webkit-outer-spin-button {
     <div id="shader-header">
     GLSL Simulator Demo: Single Execution
     </div>
-    <div id="variable-editor">
-    <div id="variable-list">
-    </div>
-    </div>
-    <div id="shader-editor">
-    <select name="editor-selector" id="editor-selector">
-    </select>
-    <div id="shader-editor-stub">
-    </div>
-    </div>
 </div>
-<div id="right-side">
-<div class="results-viewer" id="results-top">
-<span class="output-options">
-    <select id="results-top-shader-selector"></select>
-    <select id="results-top-output-selector"></select>
-</span>
-</div>
-<div class="results-viewer" id="results-bottom">
-<span class="output-options">
-    <select id="results-bottom-shader-selector"></select>
-    <select id="results-bottom-output-selector"></select>
-</span>
-</div>
-</div>
+<div id="right-side"></div>
 </form>
 </div>
 
@@ -309,62 +286,147 @@ void main( void ) {
 
 <script type="text/javascript">
 
-var OutputPane = function(which) {
-    this.resultsPane = document.getElementById("results-" + which);
-    this.shaderSelector = document.getElementById("results-" + which + "-shader-selector");
-    this.outputSelector = document.getElementById("results-" + which + "-output-selector");
-    this.outputElement = this.resultsPane.appendChild(document.createElement("span"));
-    this.outputElement.classList.add("output");
+var DemoModel = function()
+{
+    this._program = new GLSL.Program;
+    this.previousInputs = {};
+    this.env = {};
+    this.results = new Map;
 
-    var option = null;
-    option = document.createElement("option");
-    option.text = "Vertex Shader";
-    option.value = GLSL.Shader.Type.Vertex;
-    this.shaderSelector.add(option, null);
-
-    option = document.createElement("option");
-    option.text = "Fragment Shader";
-    option.value = GLSL.Shader.Type.Fragment;
-    this.shaderSelector.add(option, null);
-
-    option = document.createElement("option");
-    option.text = "Shader AST";
-    option.value = "ast";
-    this.outputSelector.add(option, null);
-
-    option = document.createElement("option");
-    option.text = "Pretty Printer";
-    option.value = "pretty";
-    this.outputSelector.add(option, null);
-
-    option = document.createElement("option");
-    option.text = "Generated JavaScript";
-    option.value = "codegen";
-    this.outputSelector.add(option, null);
-
-    option = document.createElement("option");
-    option.text = "Fragment Color";
-    option.value = "fragcolor";
-    this.outputSelector.add(option, null);
-
-    this.shaderSelector.addEventListener("change", this.refresh.bind(this));
-    this.outputSelector.addEventListener("change", this.refresh.bind(this));
+    // TODO: init variables
 };
 
-OutputPane.prototype = {
+DemoModel.Event = {
+    ShaderChanged: "demo-model-shader-changed",
+    InputsChanged: "demo-model-inputs-changed",
+    ResultChanged: "demo-model-result-changed"
+};
+
+DemoModel.prototype = {
+    __proto__: GLSL.UI.Object.prototype,
+    constructor: DemoModel,
+
+    updateShaderWithType: function(shaderType, text)
+    {
+        console.assert(shaderType === GLSL.Shader.Type.Fragment || shaderType === GLSL.Shader.Type.Vertex, shaderType);
+
+        var oldShader = this._program.shaderWithType(shaderType);
+        var newShader = new GLSL.Shader(text, shaderType);
+        this._program.insertShader(newShader);
+
+        // TODO: reimplement with events
+
+//        populateVariableEditor(shader);
+//        resultsTop.refresh();
+//        resultsBottom.refresh();
+
+        this.env = {};
+        this.results.clear();
+
+        this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader})
+    },
+
+    shaderWithType: function(shaderType)
+    {
+        console.assert(shaderType === GLSL.Shader.Type.Fragment || shaderType === GLSL.Shader.Type.Vertex, shaderType);
+        return this._program.shaderWithType(shaderType);
+    },
+
+    setInput: function(name, value)
+    {
+        this.env[name] = value;
+        this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {name: name});
+    },
+};
+
+var OutputView = function(model, which) {
+    console.assert(model instanceof DemoModel);
+    this.model = model;
+
+    this.element = document.createElement("div");
+    this.element.classList.add("results-viewer");
+    this.element.id = "results-" + which;
+
+    var optionsContainer = document.createElement("span");
+        optionsContainer.classList.add("output-options");
+    this.element.appendChild(optionsContainer);
+
+    this.shaderSelectorElement = document.createElement("select");
+        this.shaderSelectorElement.id = "results-" + which + "-shader-selector";
+        var option = null;
+        option = document.createElement("option");
+            option.text = "Vertex Shader";
+            option.value = GLSL.Shader.Type.Vertex;
+        this.shaderSelectorElement.add(option, null);
+
+        option = document.createElement("option");
+            option.text = "Fragment Shader";
+            option.value = GLSL.Shader.Type.Fragment;
+        this.shaderSelectorElement.add(option, null);
+    optionsContainer.appendChild(this.shaderSelectorElement);
+
+    this.outputSelectorElement = document.createElement("select");
+        this.outputSelectorElement.id = "results-" + which + "-output-selector";
+        option = document.createElement("option");
+            option.text = "Shader AST";
+            option.value = "ast";
+        this.outputSelectorElement.add(option, null);
+
+        option = document.createElement("option");
+            option.text = "Pretty Printer";
+            option.value = "pretty";
+        this.outputSelectorElement.add(option, null);
+
+        option = document.createElement("option");
+            option.text = "Generated JavaScript";
+            option.value = "codegen";
+        this.outputSelectorElement.add(option, null);
+
+        option = document.createElement("option");
+            option.text = "Fragment Color";
+            option.value = "fragcolor";
+        this.outputSelectorElement.add(option, null);
+        optionsContainer.appendChild(this.outputSelectorElement);
+
+    this.outputElement = document.createElement("span");
+        this.outputElement.classList.add("output");
+    this.element.appendChild(this.outputElement);
+
+
+    this.shaderSelectorElement.addEventListener("change", this.refresh.bind(this));
+    this.outputSelectorElement.addEventListener("change", this.refresh.bind(this));
+    this.model.addEventListener(DemoModel.Event.ShaderChanged, this.refresh, this);
+    this.model.addEventListener(DemoModel.Event.ResultChanged, this.refresh, this);
+};
+
+OutputView.prototype = {
+    constructor: OutputView,
+    __proto__: GLSL.UI.Object.prototype,
+
+    get activeShaderType()
+    {
+        return this.shaderSelectorElement.options[this.shaderSelectorElement.selectedIndex].value;
+    },
+
+    get activeOutputType()
+    {
+        return this.outputSelectorElement.options[this.outputSelectorElement.selectedIndex].value;
+    },
+
     refresh: function()
     {
-        if (this.outputElement)
-            this.resultsPane.removeChild(this.outputElement);
+        if (this.outputElement) {
+            this.element.removeChild(this.outputElement);
+            delete this.outputElement;
+        }
 
-        var selectedShaderType = this.shaderSelector.options[this.shaderSelector.selectedIndex].value;
-        var shader = program.shaderWithType(selectedShaderType);
+        var shader = this.model.shaderWithType(this.activeShaderType);
 
-        var selectedOutputType = this.outputSelector.options[this.outputSelector.selectedIndex].value;
-        this.outputElement = this.resultsPane.appendChild(document.createElement("span"));
-        this.outputElement.classList.add("output");
+        this.outputElement = document.createElement("span");
+            this.outputElement.classList.add("output");
+        this.element.appendChild(this.outputElement);
 
-        switch (selectedOutputType) {
+        switch (this.activeOutputType) {
         case "ast":
             this.outputElement.appendChild(document.createTextNode(jsDump.parse(shader.ast)));
         break;
@@ -374,13 +436,13 @@ OutputPane.prototype = {
         break;
 
         case "fragcolor":
+            // TODO: move to global execution via model
             var exe = shader.executable;
             var env = {};
             exe.call(null, GLSL.Runtime, env);
 
             var color = env['gl_FragColor'];
             var colorString = "rgba(" + [color.get('r'), color.get('g'), color.get('b'), color.get('a')].join(", ") + ")";
-            console.log("output color: " + color);
             this.outputElement.style.backgroundColor = colorString;
             this.outputElement.style.webkitFilter = "invert(100%);"
             var text = this.outputElement.appendChild(document.createElement("span"));
@@ -397,220 +459,324 @@ OutputPane.prototype = {
     }
 }
 
-var cm = CodeMirror(function(elt) {
-    var editorNode = document.getElementById("shader-editor-stub");
-    editorNode.parentNode.replaceChild(elt, editorNode);
-    elt.id = editorNode.id;
-}, {
-    value: "",
-    mode: "glsl",
-    lineNumbers: true
-});
+var EditorView = function(model) {
+    this.model = model;
 
-var editorNode = document.getElementById("shader-editor-stub");
-var editorSelector = document.getElementById("editor-selector");
+    this.element = document.createElement("div");
+    this.element.id = "shader-editor";
 
-var resultsTop = new OutputPane("top");
-var resultsBottom = new OutputPane("bottom");
-
-var program = new GLSL.Program();
-var previousInputs = {};
-
-// env is discarded rebuilt whenever the shader text changes.
-// Else, we directly read and write variable values in the object.
-var env = {};
-
-// from Shader instance to the last result (an object containing output variables).
-var results = new Map;
-
-/* TODO:
-- When codegen result is available, provide inputs / run shader / read outputs
-*/
-cm.on("changes", function shaderEditorContentChanged() {
-    try {
-        var shader = new GLSL.Shader(cm.getValue(), editorNode.shaderType);
-        program.insertShader(shader);
-        populateVariableEditor(shader);
-        resultsTop.refresh();
-        resultsBottom.refresh();
-    } catch (e) {
-        resultsTop.outputElement.textContent = "ERROR: " + e.message;
-    }
-});
-
-window.addEventListener("load", function initEditors() {
-    // Initialize shaders with examples.
-    try {
-    program.insertShader(new GLSL.Shader(document.getElementById("sample-vertex-shader").textContent, GLSL.Shader.Type.Vertex));
-    program.insertShader(new GLSL.Shader(document.getElementById("sample-fragment-shader").textContent, GLSL.Shader.Type.Fragment));
-    } catch (e) {
-        resultsTop.outputElement.textContent = "ERROR: " + e.message;
-    }
-
-    [editorSelector].map(function populateShaderOptions(selector) {
+    this.selectorElement = document.createElement("select");
+        this.selectorElement.id = "editor-selector";
         var option = null;
-        option = document.createElement("option");
-        option.text = "Vertex Shader";
-        option.value = GLSL.Shader.Type.Vertex;
-        selector.add(option, null);
+            option = document.createElement("option");
+            option.text = "Vertex Shader";
+            option.value = GLSL.Shader.Type.Vertex;
+        this.selectorElement.add(option, null);
 
         option = document.createElement("option");
-        option.text = "Fragment Shader";
-        option.value = GLSL.Shader.Type.Fragment;
-        selector.add(option, null);
-    });
-
-    editorSelector.addEventListener("change", editorShaderSelectorChanged);
+            option.text = "Fragment Shader";
+            option.value = GLSL.Shader.Type.Fragment;
+        this.selectorElement.add(option, null);
+    this.element.appendChild(this.selectorElement);
 
     // Select the fragment shader by default.
-    editorSelector.options[1].selected = true;
-    // The above line won't trigger a "change" event, so fake it ourselves.
-    editorShaderSelectorChanged({ target: editorSelector });
+    this.selectorElement.options[1].selected = true;
+    this.selectorElement.addEventListener("change", this._shaderSelectorChanged.bind(this));
+
+    var editorStub = document.createElement("div");
+        editorStub.id = "shader-editor-stub";
+    this.element.appendChild(editorStub);
+
+    // Set up CodeMirror to replace the editor stub.
+    this._cm = CodeMirror(function(editorNode) {
+        editorStub.parentNode.replaceChild(editorNode, editorStub);
+        editorNode.id = editorStub.id;
+    }, {
+        value: "",
+        mode: "glsl",
+        lineNumbers: true
+    });
+
+    this._cm.on("changes", function shaderEditorContentChanged() {
+        this.model.updateShaderWithType(this.activeShaderType, this._cm.getValue());
+    }.bind(this));
+};
+
+EditorView.Event = {
+    ShaderTypeChanged: "editor-view-shader-type-changed"
+};
+
+EditorView.prototype = {
+    constructor: EditorView,
+    __proto__: GLSL.UI.Object.prototype,
+
+    // Public
+
+    get activeShaderType()
+    {
+        return this.selectorElement.options[this.selectorElement.selectedIndex].value;
+    },
+
+    refresh: function()
+    {
+        var selectedShader = this.model.shaderWithType(this.activeShaderType);
+        this._cm.setValue(selectedShader ? selectedShader.sourceText : "");
+    },
+
+    // Private
+
+    _shaderSelectorChanged: function(event)
+    {
+        console.assert(event.target === this.selectorElement, event.target);
+        console.assert(event.target.selectedIndex != -1, event.target);
+
+        this.refresh();
+        this.dispatchEventToListeners(EditorView.Event.ShaderTypeChanged, this.activeShaderType);
+    }
+};
+
+var VariableView = function(variable, suggestedValue) {
+    this.variable = variable;
+
+    this._fields = [];
+
+    var variableRow = this.element = document.createElement("div");
+    variableRow.classList.add("variable-row", variable.usage);
+
+    var usageLabel = variableRow.appendChild(document.createElement("span"));
+    usageLabel.classList.add("variable-usage", variable.usage);
+    usageLabel.textContent = variable.usage;
+
+    var qualifierLabel = variableRow.appendChild(document.createElement("span"));
+    qualifierLabel.classList.add("variable-qualifier", variable.qualifier);
+    qualifierLabel.textContent = variable.qualifier;
+
+    var label = variableRow.appendChild(document.createElement("span"));
+    label.classList.add("variable-label");
+    if (variable.builtin)
+        label.classList.add("builtin");
+    label.textContent = variable.name;
+
+    var typeLabel = variableRow.appendChild(document.createElement("span"));
+    typeLabel.classList.add(variable.type, "variable-type");
+    typeLabel.textContent = variable.type;
+
+    // TODO: handle sampler2D and samplerCube seperately, by adding a
+    // file upload widget and thumbnail preview.
+
+    var cellTable = variableRow.appendChild(document.createElement("table"));
+    cellTable.classList.add("variable-cells");
+
+    var rowCount = 1;
+    var colCount = 1;
+
+    switch (variable.type) {
+    case "float": break;
+    case "vec2":  colCount = 2; break;
+    case "vec3":  colCount = 3; break;
+    case "vec4":  colCount = 4; break;
+    case "mat2":  colCount = 2; rowCount = 2; break;
+    case "mat3":  colCount = 3; rowCount = 3; break;
+    case "mat4":  colCount = 4; rowCount = 4; break;
+    default: break;
+    }
+
+    for (var i = 0; i < rowCount; ++i) {
+        var row = document.createElement("tr");
+        for (var j = 0; j < colCount; ++j) {
+            var cell = document.createElement("td");
+            if (j == 0)
+                cell.appendChild(document.createTextNode(i == 0 && colCount > 1 ? "[" : "\u00A0"));
+
+            var input = cell.appendChild(document.createElement("input"));
+            input.type = "number";
+            input.maxLength = 5;
+            input.placeholder = "0.0";
+            if (variable.usage === "out")
+                input.readOnly = true;
+            this._fields.push(input);
+            if (j < colCount - 1)
+                cell.appendChild(document.createTextNode(","));
+            else if (colCount > 1 && i == rowCount - 1)
+                cell.appendChild(document.createTextNode("]"))
+            row.appendChild(cell);
+        }
+
+        cellTable.appendChild(row);
+    }
+
+    if (variable.usage === "in" && !!suggestedValue)
+        this.setValue(suggestedValue);
+
+    if (variable.usage === "in")
+        cellTable.addEventListener("input", this._fieldInputChanged.bind(this));
+}
+
+VariableView.Event = {
+    "InputChanged": "variable-view-input-changed",
+};
+
+VariableView.prototype = {
+    constructor: VariableView,
+    __proto__: GLSL.UI.Object.prototype,
+
+    // Public
+
+    setValue: function(value)
+    {
+        var dim = 4;
+
+        switch (this.variable.type) {
+        case "float": this._fields[0].value = value; break;
+
+        case "vec2": dim--;
+        case "vec3": dim--;
+        case "vec4":
+            for (var i = 0; i < dim; ++i)
+                this._fields[i].value = value[i];
+            break;
+
+        case "vec2": dim--;
+        case "vec3": dim--;
+        case "vec4":
+            for (var i = 0; i < dim; ++i)
+                for (var j = 0; j < dim; ++j)
+                    this._fields[i * dim + j].value = value[i][j];
+            break;
+
+        default: break;
+        }
+    },
+
+    getValue: function()
+    {
+        var values = this._fields.map(function(f) { return parseFloat(f.value); });
+        if (values.some(function(v) { return isNaN(v); }))
+            return null;
+
+        switch (this.variable.type) {
+            case "float": return this._fields[0];
+            case "vec2": return GLSL.Runtime.Vec2.apply(null, values);
+            case "vec3": return GLSL.Runtime.Vec3.apply(null, values);
+            case "vec4": return GLSL.Runtime.Vec4.apply(null, values);
+            case "mat2": return GLSL.Runtime.Mat2.apply(null, values);
+            case "mat3": return GLSL.Runtime.Mat3.apply(null, values);
+            case "mat4": return GLSL.Runtime.Mat4.apply(null, values);
+        }
+    },
+
+    // Private
+
+    _fieldInputChanged: function(event)
+    {
+        if (!this.getValue())
+            return;
+
+        this.dispatchEventToListeners(VariableView.Event.InputChanged);
+    }
+};
+
+var VariableListView = function(model, shaderType) {
+    this.model = model;
+    this.shader = shaderType ? this.model.shaderWithType(shaderType) : null;
+
+    this._variableMap = new Map;
+
+    this.element = document.createElement("div");
+    this.element.id = "variable-list";
+
+    this.model.addEventListener(DemoModel.Event.ResultChanged, this._resultsChanged, this);
+
+    if (!this.shader)
+        return;
+
+    function createVariable(variable) {
+        var suggestedValue = undefined;
+
+        if (!variable.readOnly && variable.name in this.model.previousInputs)
+            suggestedValue = this.model.previousInputs[variable.name];
+
+        var view = new VariableView(variable, suggestedValue);
+        this._variableMap.set(variable, view);
+        this.element.appendChild(view.element);
+
+        if (!variable.readOnly)
+            view.addEventListener(VariableView.Event.InputChanged, this._inputChanged, this);
+    }
+
+    this.shader.uniforms.map(createVariable.bind(this));
+    if (this.shader.type === GLSL.Shader.Type.Vertex)
+        this.shader.attributes.map(createVariable.bind(this));
+
+    this.shader.varyings.map(createVariable.bind(this));
+};
+
+VariableListView.prototype = {
+    constructor: VariableListView,
+    __proto__: GLSL.UI.Object.prototype,
+
+    // Public
+
+    willHide: function()
+    {
+        this.model.removeEventListener(DemoModel.Event.ResultChanged, this._resultsChanged, this);
+    },
+
+    // Private
+
+    _inputChanged: function(event)
+    {
+        var variableView = event.target;
+        var variable = variableView.variable;
+        this.model.setInput(variable.name, variableView.getValue());
+    },
+
+    _resultsChanged: function()
+    {
+        // TODO
+    }
+};
+
+var model = null;
+
+window.addEventListener("load", function initEditors() {
+    model = new DemoModel();
+
+    var leftSide = document.getElementById("left-side");
+    var rightSide = document.getElementById("right-side");
+
+    var variableList = new VariableListView(model, null);
+    leftSide.appendChild(variableList.element);
+    var editor = new EditorView(model);
+    leftSide.appendChild(editor.element);
+
+    var resultsTop = new OutputView(model, "top");
+    rightSide.appendChild(resultsTop.element);
+    var resultsBottom = new OutputView(model, "bottom");
+    rightSide.appendChild(resultsBottom.element);
+
+    function recreateVariableList() {
+        newList = new VariableListView(model, editor.activeShaderType);
+        leftSide.replaceChild(newList.element, variableList.element);
+        variableList.willHide();
+        variableList = newList;
+    }
+
+    editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
+    model.addEventListener(DemoModel.Event.ShaderChanged, recreateVariableList);
 
     function manuallyAdjustEditorHeight() {
-        editorNode.style.height = editorNode.parentElement.offsetHeight - 5 + "px";
+        editor.element.style.height = editor.element.parentElement.offsetHeight - 5 + "px";
     }
 
     window.addEventListener("resize", manuallyAdjustEditorHeight);
+
+    model.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
+    model.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
+    editor.refresh();
+
     manuallyAdjustEditorHeight();
 });
-
-function editorShaderSelectorChanged(event) {
-    console.assert(event.target === editorSelector, event.target);
-    console.assert(event.target.selectedIndex != -1, event.target);
-
-    var selectedShaderType = editorSelector.options[editorSelector.selectedIndex].value;
-    if (editorNode.shaderType === selectedShaderType)
-        return;
-
-    var selectedShader = program.shaderWithType(selectedShaderType);
-    // Do the swap.
-    editorNode.shaderType = selectedShaderType;
-    cm.setValue(selectedShader ? selectedShader.sourceText : "");
-}
-
-function shaderInputsChanged(shader, inputMap) {
-    // TODO: update the env
-};
-
-function populateVariableEditor(shader) {
-    function makeVariableRow(variable) {
-        var variableRow = document.createElement("div");
-        variableRow.classList.add("variable-row", variable.usage);
-
-        var usageLabel = variableRow.appendChild(document.createElement("span"));
-        usageLabel.classList.add("variable-usage", variable.usage);
-        usageLabel.textContent = variable.usage;
-
-        var qualifierLabel = variableRow.appendChild(document.createElement("span"));
-        qualifierLabel.classList.add("variable-qualifier", variable.qualifier);
-        qualifierLabel.textContent = variable.qualifier;
-
-        var label = variableRow.appendChild(document.createElement("span"));
-        label.classList.add("variable-label");
-        if (variable.builtin)
-            label.classList.add("builtin");
-        label.textContent = variable.name;
-
-        var typeLabel = variableRow.appendChild(document.createElement("span"));
-        typeLabel.classList.add(variable.type, "variable-type");
-        typeLabel.textContent = variable.type;
-
-        // TODO: handle sampler2D and samplerCube seperately, by adding a
-        // file upload widget and thumbnail preview.
-
-        var cellTable = variableRow.appendChild(document.createElement("table"));
-        cellTable.classList.add("variable-cells");
-
-        var rowCount = 1;
-        var colCount = 1;
-
-        switch (variable.type) {
-        case "float": break;
-        case "vec2":  colCount = 2; break;
-        case "vec3":  colCount = 3; break;
-        case "vec4":  colCount = 4; break;
-        case "mat2":  colCount = 2; rowCount = 2; break;
-        case "mat3":  colCount = 3; rowCount = 3; break;
-        case "mat4":  colCount = 4; rowCount = 4; break;
-        default: break;
-        }
-
-        var elements = [];
-
-        for (var i = 0; i < rowCount; ++i) {
-            var row = document.createElement("tr");
-            for (var j = 0; j < colCount; ++j) {
-                var cell = document.createElement("td");
-                if (j == 0)
-                    cell.appendChild(document.createTextNode(i == 0 && colCount > 1 ? "[" : "\u00A0"));
-
-                var input = cell.appendChild(document.createElement("input"));
-                input.type = "number";
-                input.maxLength = 5;
-                input.placeholder = "0.0";
-                if (variable.usage === "out")
-                    input.readOnly = true;
-                elements.push(input);
-                if (j < colCount - 1)
-                    cell.appendChild(document.createTextNode(","));
-                else if (colCount > 1 && i == rowCount - 1)
-                    cell.appendChild(document.createTextNode("]"))
-                row.appendChild(cell);
-            }
-
-            cellTable.appendChild(row);
-        }
-
-        if (variable.usage === "in" && variable.name in previousInputs) {
-            var existingValue = previousInputs[variable.name];
-            for (var i = 0; i < elements.length; ++i)
-                elements[i].value = existingValue[i];
-
-            env[variable.name] = previousInputs[variable.name];
-        }
-
-        function cellValueDidChange(event) {
-            if (elements.indexOf(event.target) == -1)
-                return;
-
-            var value = null;
-            if (elements.length === 1) {
-                value = elements[0].value;
-            } else {
-                var value = [];
-                for (var i = 0; i < elements.length; ++i)
-                    value.push(elements[i].value);
-            }
-
-            previousInputs[variable.name] = value;
-            env[variable.name] = value;
-            shaderInputsChanged();
-        }
-
-        if (variable.usage === "in")
-            cellTable.addEventListener("input", cellValueDidChange);
-
-        return variableRow;
-    }
-
-    var variablesNode = document.getElementById("variable-list");
-
-    while (variablesNode.hasChildNodes())
-        variablesNode.removeChild(variablesNode.lastChild);
-
-    var uniforms = shader.uniforms;
-    var attributes = shader.attributes;
-    var varyings = shader.varyings;
-
-    // TODO: add a divider and section label?
-    uniforms.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
-
-    if (shader.type === GLSL.Shader.Type.Vertex)
-        attributes.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
-
-    varyings.map(function(v) { variablesNode.appendChild(makeVariableRow(v)); });
-}
 
 </script>
 
