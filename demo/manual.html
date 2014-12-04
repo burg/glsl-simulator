@@ -171,6 +171,7 @@ span.variable-type {
     padding: 2px;
 }
 
+span.variable-type,
 span.variable-type.float {
     background-color: rgb(166, 171, 183);
     border: solid 2px rgb(86, 100, 138);
@@ -202,6 +203,14 @@ table.variable-cells input[type="number"] {
     font-size: 12px;
     font-family: Menlo, monospace;
     width: 4em;
+}
+
+.invalid-input {
+    color: rgb(224, 8, 97);
+}
+
+.valid-input {
+    color: rgb(24, 47, 117);
 }
 
 .inverted {
@@ -308,17 +317,9 @@ DemoModel.prototype = {
 
     updateShaderWithType: function(shaderType, text)
     {
-        console.assert(shaderType === GLSL.Shader.Type.Fragment || shaderType === GLSL.Shader.Type.Vertex, shaderType);
-
         var oldShader = this._program.shaderWithType(shaderType);
         var newShader = new GLSL.Shader(text, shaderType);
         this._program.insertShader(newShader);
-
-        // TODO: reimplement with events
-
-//        populateVariableEditor(shader);
-//        resultsTop.refresh();
-//        resultsBottom.refresh();
 
         this.env = {};
         this.results.clear();
@@ -328,7 +329,6 @@ DemoModel.prototype = {
 
     shaderWithType: function(shaderType)
     {
-        console.assert(shaderType === GLSL.Shader.Type.Fragment || shaderType === GLSL.Shader.Type.Vertex, shaderType);
         return this._program.shaderWithType(shaderType);
     },
 
@@ -655,7 +655,7 @@ VariableView.prototype = {
             return null;
 
         switch (this.variable.type) {
-            case "float": return this._fields[0];
+            case "float": return values[0];
             case "vec2": return GLSL.Runtime.Vec2.apply(null, values);
             case "vec3": return GLSL.Runtime.Vec3.apply(null, values);
             case "vec4": return GLSL.Runtime.Vec4.apply(null, values);
@@ -669,9 +669,16 @@ VariableView.prototype = {
 
     _fieldInputChanged: function(event)
     {
-        if (!this.getValue())
-            return;
+        var cell = event.target;
+        cell.classList.remove("valid-input");
+        cell.classList.remove("invalid-input");
 
+        if (isNaN(parseFloat(cell.value))) {
+            cell.classList.add("invalid-input");
+            return;
+        }
+
+        cell.classList.add("valid-input");
         this.dispatchEventToListeners(VariableView.Event.InputChanged);
     }
 };
