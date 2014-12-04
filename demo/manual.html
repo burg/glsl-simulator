@@ -384,7 +384,24 @@ DemoModel.prototype = {
         var key = [variable.name, variable.type].join("_");
         this._previousInputs[key] = value;
         this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {variable: variable});
+
+        this._runShaders();
     },
+
+    // Private
+
+    _runShaders: function()
+    {
+        var vertexShader = this.shaderWithType(GLSL.Shader.Type.Vertex);
+        if (vertexShader)
+            vertexShader.executable.call(null, GLSL.Runtime, this.env);
+
+        var fragmentShader = this.shaderWithType(GLSL.Shader.Type.Fragment);
+        if (fragmentShader)
+            fragmentShader.executable.call(null, GLSL.Runtime, this.env);
+
+        this.dispatchEventToListeners(DemoModel.Event.ResultChanged);
+    }
 };
 
 var OutputView = function(model, which) {
@@ -499,12 +516,10 @@ OutputView.prototype = {
         break;
 
         case "fragcolor":
-            // TODO: move to global execution via model
-            var exe = shader.executable;
-            var env = {};
-            exe.call(null, GLSL.Runtime, env);
+            var color = this.model.env['gl_FragColor'];
+            if (!color)
+                break;
 
-            var color = env['gl_FragColor'];
             var colorString = "rgba(" + [color.get('r'), color.get('g'), color.get('b'), color.get('a')].join(", ") + ")";
             this.outputElement.style.backgroundColor = colorString;
             this.outputElement.style.webkitFilter = "invert(100%);"
@@ -807,7 +822,13 @@ VariableListView.prototype = {
 
     _resultsChanged: function()
     {
-        // TODO
+        this._variableMap.forEach(function(value, key, map) {
+            var variable = key, view = value;
+            var storedValue = this.model.env[variable.name];
+
+            if (!variable.readOnly && storedValue)
+                view.insertValue(storedValue);
+        }, this);
     }
 };
 
