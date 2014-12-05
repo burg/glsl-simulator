@@ -226,7 +226,7 @@ table.variable-cells {
     font-size: 16px;
 }
 
-table.variable-cells input[type="number"] {
+table.variable-cells input[type="text"] {
     font-size: 12px;
     font-family: Menlo, monospace;
     width: 4em;
@@ -245,12 +245,6 @@ table.variable-cells input[type="number"] {
     -webkit-filter: invert(100%);
 }
 
-/* Disable the number spinner arrow things on elements. It's dumb. */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
 </style>
 
 </head>
@@ -527,7 +521,8 @@ OutputView.prototype = {
                 break;
 
             color = GLSL.Runtime.clamp(this.model.env['gl_FragColor'], 0.0, 1.0);
-            var colorString = "rgba(" + [color.get('r') * 255.0, color.get('g') * 255.0, color.get('b') * 255.0, color.get('a')].join(", ") + ")";
+            hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
+            var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
             this.outputElement.style.backgroundColor = colorString;
             this.outputElement.style.webkitFilter = "invert(100%);"
             var text = this.outputElement.appendChild(document.createElement("span"));
@@ -682,7 +677,7 @@ var VariableView = function(variable, suggestedValue) {
                 cell.appendChild(document.createTextNode(i == 0 && colCount > 1 ? "[" : "\u00A0"));
 
             var input = cell.appendChild(document.createElement("input"));
-            input.type = "number";
+            input.type = "text";
             input.maxLength = 5;
             input.placeholder = "0.0";
             if (variable.usage === "out")
@@ -743,7 +738,9 @@ VariableView.prototype = {
 
     extractValue: function()
     {
-        var values = this._fields.map(function(f) { return parseFloat(f.value); });
+        var values = this._fields.map(function(f) {
+            return (f.value && !f.value.endsWith(".")) ? Number(f.value) : NaN;
+        });
         if (values.some(function(v) { return isNaN(v); }))
             return null;
 
@@ -766,7 +763,7 @@ VariableView.prototype = {
         cell.classList.remove("valid-input");
         cell.classList.remove("invalid-input");
 
-        if (isNaN(parseFloat(cell.value))) {
+        if (cell.value.endsWith(".") || isNaN(Number(cell.value))) {
             cell.classList.add("invalid-input");
             return;
         }
