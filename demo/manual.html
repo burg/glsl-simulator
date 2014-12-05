@@ -349,7 +349,7 @@ DemoModel.prototype = {
             var newShader = new GLSL.Shader(text, shaderType);
             this._program.insertShader(newShader);
         } catch (e) {
-            this.dispatchEventToListeners(DemoModel.Event.Error, {message: e.message});
+            this.dispatchEventToListeners(DemoModel.Event.Error, {type: e.type, message: e.message});
             return;
         }
 
@@ -393,12 +393,40 @@ DemoModel.prototype = {
     _runShaders: function()
     {
         var vertexShader = this.shaderWithType(GLSL.Shader.Type.Vertex);
-        if (vertexShader)
-            vertexShader.executable.call(null, GLSL.Runtime, this.env);
-
         var fragmentShader = this.shaderWithType(GLSL.Shader.Type.Fragment);
-        if (fragmentShader)
-            fragmentShader.executable.call(null, GLSL.Runtime, this.env);
+        if (!vertexShader && !fragmentShader)
+            return;
+
+        if (vertexShader.executable.error) {
+            var data = {
+                type: GLSL.Error.Type.VertexShaderTranslation,
+                message: vertexShader.executable.error
+            };
+
+            this.dispatchEventToListeners(DemoModel.Event.Error, data);
+            return;
+        }
+
+        if (fragmentShader.executable.error) {
+            var data = {
+                type: GLSL.Error.Type.FragmentShaderTranslation,
+                message: fragmentShader.executable.error
+            };
+
+            this.dispatchEventToListeners(DemoModel.Event.Error, data);
+            return;
+        }
+
+        try {
+            if (vertexShader)
+                vertexShader.executable.code.call(null, GLSL.Runtime, this.env);
+
+            if (fragmentShader)
+                fragmentShader.executable.code.call(null, GLSL.Runtime, this.env);
+        } catch (e) {
+            this.dispatchEventToListeners(DemoModel.Event.Error, {type: e.source, message: e.message});
+            return;
+        }
 
         this.dispatchEventToListeners(DemoModel.Event.ResultChanged);
     }
@@ -407,6 +435,12 @@ DemoModel.prototype = {
 var OutputView = function(model, which) {
     console.assert(model instanceof DemoModel);
     this.model = model;
+
+    this._errorSources = {};
+    this._errorSources[GLSL.Error.Type.VertexShaderParsing] = "Vertex Shader Parsing Problem:";
+    this._errorSources[GLSL.Error.Type.FragmentShaderParsing] = "Fragment Shader Parsing Problem:";
+    this._errorSources[GLSL.Error.Type.VertexShaderTranslation] = "Vertex Shader Translation Problem:";
+    this._errorSources[GLSL.Error.Type.FragmentShaderTranslation] = "Fragment Shader Parsing Problem:";
 
     this.element = document.createElement("div");
     this.element.classList.add("results-viewer");
@@ -473,12 +507,28 @@ OutputView.prototype = {
         return this.shaderSelectorElement.options[this.shaderSelectorElement.selectedIndex].value;
     },
 
+    set activeShaderType(value)
+    {
+        var options = this.shaderSelectorElement.options;
+        for (var i = 0; i < options.length; ++i)
+            if (value === options[i].value)
+                options[i].selected = true;
+    },
+
     get activeOutputType()
     {
         return this.outputSelectorElement.options[this.outputSelectorElement.selectedIndex].value;
     },
 
-    showErrorMessage: function(message)
+    set activeOutputType(value)
+    {
+        var options = this.outputSelectorElement.options;
+        for (var i = 0; i < options.length; ++i)
+            if (value === options[i].value)
+                options[i].selected = true;
+        },
+
+    showErrorMessage: function(type, message)
     {
         if (this.outputElement) {
             this.element.removeChild(this.outputElement);
@@ -488,7 +538,7 @@ OutputView.prototype = {
         this.outputElement = document.createElement("span");
             this.element.classList.add("error-message");
             this.outputElement.classList.add("output");
-            this.outputElement.textContent = message;
+            this.outputElement.textContent = (this._errorSources[type] || "Error:") + "\n" + message;
         this.element.appendChild(this.outputElement);
     },
 
@@ -512,7 +562,8 @@ OutputView.prototype = {
         break;
 
         case "codegen":
-            this.outputElement.appendChild(document.createTextNode(shader.executable.toString()));
+            var source = shader.executable.source || shader.executable.code.toString();
+            this.outputElement.appendChild(document.createTextNode(source));
         break;
 
         case "output":
@@ -884,7 +935,19 @@ window.addEventListener("load", function initEditors() {
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
     model.addEventListener(DemoModel.Event.ShaderChanged, recreateVariableList);
     model.addEventListener(DemoModel.Event.Error, function displayError(event) {
-        resultsTop.showErrorMessage(event.data.message);
+        var errorType = event.data.type;
+        if (errorType === GLSL.Error.Type.VertexShaderTranslation) {
+            resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
+            resultsBottom.activeOutputType = "codegen";
+        }
+
+        if (errorType === GLSL.Error.Type.FragmentShaderTranslation) {
+            resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
+            resultsBottom.activeOutputType = "codegen";
+        }
+
+        resultsBottom.refresh();
+        resultsTop.showErrorMessage(errorType, event.data.message);
     });
 
     window.addEventListener("resize", editor.autosizeHeight.bind(editor));
