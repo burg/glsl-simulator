@@ -448,8 +448,8 @@ var OutputView = function(model, which) {
         this.outputSelectorElement.add(option, null);
 
         option = document.createElement("option");
-            option.text = "Fragment Color";
-            option.value = "fragcolor";
+            option.text = "Primary Output";
+            option.value = "output";
         this.outputSelectorElement.add(option, null);
         optionsContainer.appendChild(this.outputSelectorElement);
 
@@ -515,19 +515,39 @@ OutputView.prototype = {
             this.outputElement.appendChild(document.createTextNode(shader.executable.toString()));
         break;
 
-        case "fragcolor":
-            var color = this.model.env['gl_FragColor'];
-            if (!color)
-                break;
+        case "output":
+            if (this.activeShaderType === GLSL.Shader.Type.Fragment) {
+                var color = this.model.env['gl_FragColor'];
+                if (!color)
+                    break;
 
-            color = GLSL.Runtime.clamp(this.model.env['gl_FragColor'], 0.0, 1.0);
-            hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
-            var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
-            this.outputElement.style.backgroundColor = colorString;
-            this.outputElement.style.webkitFilter = "invert(100%);"
-            var text = this.outputElement.appendChild(document.createElement("span"));
-            text.classList.add("inverted");
-            text.textContent = "gl_FragColor = " + colorString;
+                color = GLSL.Runtime.clamp(this.model.env['gl_FragColor'], 0.0, 1.0);
+                hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
+                var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
+                this.outputElement.style.backgroundColor = colorString;
+                this.outputElement.style.webkitFilter = "invert(100%);"
+                var text = this.outputElement.appendChild(document.createElement("span"));
+                text.classList.add("inverted");
+                text.textContent = "gl_FragColor = " + colorString;
+            }
+
+            if (this.activeShaderType === GLSL.Shader.Type.Vertex) {
+                var position = this.model.env['gl_Position'];
+                var pointSize = this.model.env['gl_PointSize'];
+
+                if (!position && !pointSize)
+                    break;
+
+                var output = "";
+                if (position) {
+                    var positionString = [position.get("x"), position.get("y"), position.get("z"), position.get("w")].join(", ");
+                    output += "gl_Position = [" + positionString + "]\n";
+                }
+                if (pointSize)
+                    output += "gl_PointSize = " + pointSize;
+
+                this.outputElement.textContent = output;
+            }
         break;
 
         case "pretty":
