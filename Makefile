@@ -16,14 +16,14 @@ MODULES = compiler/ast                          \
           compiler/shader                       \
           compiler/program                      \
           compiler/typecheck                    \
+          runtime/vector                        \
+          runtime/matrix                        \
           runtime/access                        \
           runtime/angle                         \
           runtime/common                        \
           runtime/exponential                   \
           runtime/geometric                     \
-          runtime/matrix                        \
           runtime/vecfunc                       \
-          runtime/vector                        \
           runtime                               \
           ui                                    \
           glsl                                  \
