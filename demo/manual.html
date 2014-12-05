@@ -288,6 +288,8 @@ precision mediump float;
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
+uniform vec4 color;
+
 // b/w remix
 // tomaes.32x.de 2014.11
 void main( void ) {
@@ -360,7 +362,9 @@ DemoModel.prototype = {
         this.env = {};
         this.results.clear();
 
-        this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader})
+        this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader});
+
+        this._runShaders();
     },
 
     shaderWithType: function(shaderType)
@@ -522,7 +526,8 @@ OutputView.prototype = {
             if (!color)
                 break;
 
-            var colorString = "rgba(" + [color.get('r'), color.get('g'), color.get('b'), color.get('a')].join(", ") + ")";
+            color = GLSL.Runtime.clamp(this.model.env['gl_FragColor'], 0.0, 1.0);
+            var colorString = "rgba(" + [color.get('r') * 255.0, color.get('g') * 255.0, color.get('b') * 255.0, color.get('a')].join(", ") + ")";
             this.outputElement.style.backgroundColor = colorString;
             this.outputElement.style.webkitFilter = "invert(100%);"
             var text = this.outputElement.appendChild(document.createElement("span"));
