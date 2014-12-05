@@ -7,7 +7,8 @@ GLSL_SIMULATOR_VERSION = `cat $(VERSION_FILE)`
 # ===== Modules =====
 
 # Order matters -- dependencies must be listed before modules dependent on them.
-MODULES = compiler/ast                          \
+MODULES = error                                 \
+          compiler/ast                          \
           compiler/visitor                      \
           compiler/pretty                       \
           compiler/environment                  \
