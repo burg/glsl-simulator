@@ -404,7 +404,7 @@ DemoModel.prototype = {
             }
 
             try {
-                shader.executable.code.call(null, GLSL.Runtime, this.env);
+                shader.executable.code.call(null, GLSL, this.env);
             } catch (e) {
                 var errorType = (shader.type === GLSL.Shader.Type.Vertex) ? GLSL.Error.Type.VertexShaderExecution : GLSL.Error.Type.FragmentShaderExecution;
                 this.dispatchEventToListeners(DemoModel.Event.Error, {type: errorType, message: e.message});
