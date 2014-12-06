@@ -392,41 +392,35 @@ DemoModel.prototype = {
 
     _runShaders: function()
     {
+        function invokeShaderOrFail(shader) {
+            if (!shader)
+                return true;
+
+            if (shader.executable.error) {
+                var errorType = (shader.type === GLSL.Shader.Type.Vertex) ? GLSL.Error.Type.VertexShaderTranslation : GLSL.Error.Type.FragmentShaderTranslation;
+                var data = {type: errorType, message: shader.executable.error};
+                this.dispatchEventToListeners(DemoModel.Event.Error, data);
+                return false;
+            }
+
+            try {
+                shader.executable.code.call(null, GLSL.Runtime, this.env);
+            } catch (e) {
+                var errorType = (shader.type === GLSL.Shader.Type.Vertex) ? GLSL.Error.Type.VertexShaderExecution : GLSL.Error.Type.FragmentShaderExecution;
+                this.dispatchEventToListeners(DemoModel.Event.Error, {type: errorType, message: e.message});
+                return false;
+            }
+
+            return true;
+        }
+
         var vertexShader = this.shaderWithType(GLSL.Shader.Type.Vertex);
+        if (!invokeShaderOrFail.call(this, vertexShader))
+            return;
+
         var fragmentShader = this.shaderWithType(GLSL.Shader.Type.Fragment);
-        if (!vertexShader && !fragmentShader)
+        if (!invokeShaderOrFail.call(this, fragmentShader))
             return;
-
-        if (vertexShader.executable.error) {
-            var data = {
-                type: GLSL.Error.Type.VertexShaderTranslation,
-                message: vertexShader.executable.error
-            };
-
-            this.dispatchEventToListeners(DemoModel.Event.Error, data);
-            return;
-        }
-
-        if (fragmentShader.executable.error) {
-            var data = {
-                type: GLSL.Error.Type.FragmentShaderTranslation,
-                message: fragmentShader.executable.error
-            };
-
-            this.dispatchEventToListeners(DemoModel.Event.Error, data);
-            return;
-        }
-
-        try {
-            if (vertexShader)
-                vertexShader.executable.code.call(null, GLSL.Runtime, this.env);
-
-            if (fragmentShader)
-                fragmentShader.executable.code.call(null, GLSL.Runtime, this.env);
-        } catch (e) {
-            this.dispatchEventToListeners(DemoModel.Event.Error, {type: e.source, message: e.message});
-            return;
-        }
 
         this.dispatchEventToListeners(DemoModel.Event.ResultChanged);
     }
@@ -513,6 +507,8 @@ OutputView.prototype = {
         for (var i = 0; i < options.length; ++i)
             if (value === options[i].value)
                 options[i].selected = true;
+
+        this.refresh();
     },
 
     get activeOutputType()
@@ -526,7 +522,9 @@ OutputView.prototype = {
         for (var i = 0; i < options.length; ++i)
             if (value === options[i].value)
                 options[i].selected = true;
-        },
+
+        this.refresh();
+    },
 
     showErrorMessage: function(type, message)
     {
@@ -550,6 +548,8 @@ OutputView.prototype = {
         }
 
         var shader = this.model.shaderWithType(this.activeShaderType);
+        if (!shader)
+            return;
 
         this.outputElement = document.createElement("span");
             this.outputElement.classList.add("output");
@@ -666,6 +666,16 @@ EditorView.prototype = {
     get activeShaderType()
     {
         return this.selectorElement.options[this.selectorElement.selectedIndex].value;
+    },
+
+    set activeShaderType(value)
+    {
+        var options = this.selectorElement.options;
+        for (var i = 0; i < options.length; ++i)
+            if (value === options[i].value)
+                options[i].selected = true;
+
+        this.refresh();
     },
 
     refresh: function()
@@ -936,17 +946,16 @@ window.addEventListener("load", function initEditors() {
     model.addEventListener(DemoModel.Event.ShaderChanged, recreateVariableList);
     model.addEventListener(DemoModel.Event.Error, function displayError(event) {
         var errorType = event.data.type;
-        if (errorType === GLSL.Error.Type.VertexShaderTranslation) {
+        if (errorType === GLSL.Error.Type.VertexShaderTranslation || GLSL.Error.Type.VertexShaderExecution) {
             resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
             resultsBottom.activeOutputType = "codegen";
         }
 
-        if (errorType === GLSL.Error.Type.FragmentShaderTranslation) {
+        if (errorType === GLSL.Error.Type.FragmentShaderTranslation || GLSL.Error.Type.FragmentShaderExecution) {
             resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
             resultsBottom.activeOutputType = "codegen";
         }
 
-        resultsBottom.refresh();
         resultsTop.showErrorMessage(errorType, event.data.message);
     });
 
@@ -955,6 +964,15 @@ window.addEventListener("load", function initEditors() {
     model.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
     model.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
     editor.refresh();
+
+    // Change these defaults if you want to start somewhere else.
+    editor.activeShaderType = GLSL.Shader.Type.Vertex;
+
+    resultsTop.activeShaderType = GLSL.Shader.Type.Vertex;
+    resultsTop.activeOutputType = "codegen";
+
+    resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
+    resultsBottom.activeOutputType = "ast";
 });
 
 </script>
