@@ -19,12 +19,7 @@ MODULES = error                                 \
           compiler/typecheck                    \
           runtime/vector                        \
           runtime/matrix                        \
-          runtime/access                        \
-          runtime/angle                         \
-          runtime/common                        \
-          runtime/exponential                   \
-          runtime/geometric                     \
-          runtime/vecfunc                       \
+          runtime/builtins                      \
           runtime                               \
           ui                                    \
           glsl                                  \
