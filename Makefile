@@ -10,6 +10,7 @@ GLSL_SIMULATOR_VERSION = `cat $(VERSION_FILE)`
 MODULES = error                                 \
           runtime/vector                        \
           runtime/matrix                        \
+          runtime/ops                           \
           runtime/builtins                      \
           runtime                               \
           compiler/ast                          \
