@@ -414,18 +414,36 @@ DemoModel.prototype = {
 
     _resetEnvironment: function()
     {
+        function setDefaultValue(env, variable) {
+            var value = 0.0;
+
+            switch (variable.type) {
+            case "bool": value = true; break;
+            case "vec2": value = GLSL.Runtime.Vec2(0, 0); break;
+            case "vec3": value = GLSL.Runtime.Vec3(0, 0, 0); break;
+            case "vec4": value = GLSL.Runtime.Vec4(0, 0, 0, 0); break;
+            case "mat2": value = GLSL.Runtime.Mat2(0, 0,
+                                                   0 ,0); break;
+            case "mat3": value = GLSL.Runtime.Mat3(0, 0, 0,
+                                                   0, 0, 0,
+                                                   0, 0, 0); break;
+            case "mat4": value = GLSL.Runtime.Mat4(0, 0, 0, 0,
+                                                   0, 0, 0, 0,
+                                                   0, 0, 0, 0,
+                                                   0, 0, 0, 0); break;
+            }
+
+            env.set(variable.name, value);
+        }
+
         function setDefaultValuesForShader(shader, env) {
             if (!shader)
                 return;
 
-            for (var list = shader.uniforms, i = 0; i < list.length; ++i)
-                env.set(list[i].name, 0.0);
-
-            for (var list = shader.varyings, i = 0; i < list.length; ++i)
-                env.set(list[i].name, 0.0);
-
-            for (var list = shader.attributes, i = 0; i < list.length; ++i)
-                env.set(list[i].name, 0.0);
+            // TODO: only initialize the input variables.
+            shader.uniforms.map(setDefaultValue.bind(null, env));
+            shader.varyings.map(setDefaultValue.bind(null, env));
+            shader.attributes.map(setDefaultValue.bind(null, env));
         }
 
         this.env = new GLSL.Environment;
