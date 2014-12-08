@@ -337,7 +337,7 @@ DemoModel.Event = {
 };
 
 DemoModel.prototype = {
-    __proto__: GLSL.UI.Object.prototype,
+    __proto__: GLSL.Object.prototype,
     constructor: DemoModel,
 
     // Public
@@ -496,7 +496,7 @@ var OutputView = function(model, which) {
 
 OutputView.prototype = {
     constructor: OutputView,
-    __proto__: GLSL.UI.Object.prototype,
+    __proto__: GLSL.Object.prototype,
 
     get activeShaderType()
     {
@@ -661,7 +661,7 @@ EditorView.Event = {
 
 EditorView.prototype = {
     constructor: EditorView,
-    __proto__: GLSL.UI.Object.prototype,
+    __proto__: GLSL.Object.prototype,
 
     // Public
 
@@ -789,7 +789,7 @@ VariableView.Event = {
 
 VariableView.prototype = {
     constructor: VariableView,
-    __proto__: GLSL.UI.Object.prototype,
+    __proto__: GLSL.Object.prototype,
 
     // Public
 
@@ -890,7 +890,7 @@ var VariableListView = function(model, shaderType) {
 
 VariableListView.prototype = {
     constructor: VariableListView,
-    __proto__: GLSL.UI.Object.prototype,
+    __proto__: GLSL.Object.prototype,
 
     // Public
 

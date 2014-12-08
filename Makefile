@@ -8,6 +8,7 @@ GLSL_SIMULATOR_VERSION = `cat $(VERSION_FILE)`
 
 # Order matters -- dependencies must be listed before modules dependent on them.
 MODULES = error                                 \
+          events                                \
           runtime/vector                        \
           runtime/matrix                        \
           runtime/access                        \
@@ -23,7 +24,6 @@ MODULES = error                                 \
           compiler/shader                       \
           compiler/program                      \
           compiler/typecheck                    \
-          ui                                    \
           glsl                                  \
 
 
