@@ -9,7 +9,7 @@
 <script src="lib/mode/glsl.js"></script>
 
 <style type="text/css">
-#container {
+#demo-container {
     display: flex;
     display: -webkit-flex;
     flex-direction: row;
@@ -24,7 +24,7 @@
     overflow: none;
 }
 
-#container > div {
+#demo-container > div {
     width: 50%;
     display: flex;
     display: -webkit-flex;
@@ -34,7 +34,7 @@
     -webkit-flex-wrap: nowrap;
 }
 
-#shader-header {
+#demo-header {
     height: 30px;
     font: 14px Helvetica, Arial, sans-serif;
     font-weight: bold;
@@ -69,20 +69,20 @@
     margin-right: 5px;
 }
 
-#variable-list {
+.variable-list {
     border: solid 3px #99c;
     height: 200px;
     overflow-y: scroll;
 }
 
-#shader-editor {
+.shader-editor {
     border: solid 3px #c99;
     -webkit-flex-grow: 1;
     flex-grow: 1;
     position: relative;
 }
 
-#shader-editor-stub {
+.shader-editor .stub {
     height: 100%;
 }
 
@@ -269,9 +269,9 @@ table.variable-cells input[type="text"] {
 </head>
 <body>
     <form>
-<div id="container">
+<div id="demo-container">
 <div id="left-side">
-    <div id="shader-header">
+    <div id="demo-header">
     GLSL Simulator Demo: Single Execution
     </div>
 </div>
@@ -441,10 +441,10 @@ DemoModel.prototype = {
             if (!shader)
                 return;
 
-            // TODO: only initialize the input variables.
             shader.uniforms.map(setDefaultValue.bind(null, env));
-            shader.varyings.map(setDefaultValue.bind(null, env));
             shader.attributes.map(setDefaultValue.bind(null, env));
+            if (shader.type === GLSL.Shader.Type.Fragment)
+                shader.varyings.map(setDefaultValue.bind(null, env));
         }
 
         this.env = new GLSL.Environment;
@@ -684,7 +684,7 @@ var EditorView = function(model) {
     this.model = model;
 
     this.element = document.createElement("div");
-    this.element.id = "shader-editor";
+    this.element.classList.add("shader-editor");
 
     var item = null;
 
@@ -726,6 +726,7 @@ var EditorView = function(model) {
     this._cm = CodeMirror(function(editorNode) {
         editorStub.parentNode.replaceChild(editorNode, editorStub);
         editorNode.id = editorStub.id;
+        editorNode.classList.add("stub");
     }, {
         value: "",
         mode: "glsl",
@@ -957,7 +958,7 @@ var VariableListView = function(model, shaderType) {
     this._variableMap = new Map;
 
     this.element = document.createElement("div");
-    this.element.id = "variable-list";
+    this.element.classList.add("variable-list");
 
     this.model.addEventListener(DemoModel.Event.ResultChanged, this._resultsChanged, this);
 
