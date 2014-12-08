@@ -14,11 +14,11 @@ MODULES = error                                 \
           runtime/access                        \
           runtime/ops                           \
           runtime/builtins                      \
+          runtime/environment                   \
           runtime                               \
           compiler/ast                          \
           compiler/visitor                      \
           compiler/pretty                       \
-          compiler/environment                  \
           compiler/codegen                      \
           compiler/parser                       \
           compiler/shader                       \

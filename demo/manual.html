@@ -342,10 +342,9 @@ var DemoModel = function()
     this._program = new GLSL.Program;
     // Map from "name_type" to previous GLSL value.
     this._previousInputs = {};
-    this.env = {};
-    this.results = new Map;
 
-    // TODO: init variables
+    this.results = new Map;
+    this._resetEnvironment();
 };
 
 DemoModel.Event = {
@@ -376,7 +375,7 @@ DemoModel.prototype = {
             return;
         }
 
-        this.env = {};
+        this._resetEnvironment();
         this.results.clear();
 
         this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader});
@@ -403,7 +402,7 @@ DemoModel.prototype = {
 
     setVariableValue: function(variable, value)
     {
-        this.env[variable.name] = value;
+        this.env.set(variable.name, value);
         var key = [variable.name, variable.type].join("_");
         this._previousInputs[key] = value;
         this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {variable: variable});
@@ -412,6 +411,28 @@ DemoModel.prototype = {
     },
 
     // Private
+
+    _resetEnvironment: function()
+    {
+        function setDefaultValuesForShader(shader, env) {
+            if (!shader)
+                return;
+
+            for (var list = shader.uniforms, i = 0; i < list.length; ++i)
+                env.set(list[i].name, 0.0);
+
+            for (var list = shader.varyings, i = 0; i < list.length; ++i)
+                env.set(list[i].name, 0.0);
+
+            for (var list = shader.attributes, i = 0; i < list.length; ++i)
+                env.set(list[i].name, 0.0);
+        }
+
+        this.env = new GLSL.Environment;
+        setDefaultValuesForShader(this.shaderWithType(GLSL.Shader.Type.Vertex), this.env);
+        setDefaultValuesForShader(this.shaderWithType(GLSL.Shader.Type.Fragment), this.env);
+
+    },
 
     _runShaders: function()
     {
@@ -598,11 +619,11 @@ OutputView.prototype = {
 
         case "output":
             if (this.activeShaderType === GLSL.Shader.Type.Fragment) {
-                var color = this.model.env['gl_FragColor'];
+                var color = this.model.env.get('gl_FragColor');
                 if (!color)
                     break;
 
-                color = GLSL.Runtime.clamp(this.model.env['gl_FragColor'], 0.0, 1.0);
+                color = GLSL.Runtime.clamp(this.model.env.get('gl_FragColor'), 0.0, 1.0);
                 hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
                 var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
                 this.outputElement.style.backgroundColor = colorString;
@@ -613,8 +634,8 @@ OutputView.prototype = {
             }
 
             if (this.activeShaderType === GLSL.Shader.Type.Vertex) {
-                var position = this.model.env['gl_Position'];
-                var pointSize = this.model.env['gl_PointSize'];
+                var position = this.model.env.get('gl_Position');
+                var pointSize = this.model.env.get('gl_PointSize');
 
                 if (!position && !pointSize)
                     break;
@@ -963,7 +984,7 @@ VariableListView.prototype = {
     {
         this._variableMap.forEach(function(value, key, map) {
             var variable = key, view = value;
-            var storedValue = this.model.env[variable.name];
+            var storedValue = this.model.env.get(variable.name);
 
             if (!variable.readOnly && storedValue)
                 view.insertValue(storedValue);
