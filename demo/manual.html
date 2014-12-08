@@ -434,7 +434,9 @@ var OutputView = function(model, which) {
     this._errorSources[GLSL.Error.Type.VertexShaderParsing] = "Vertex Shader Parsing Problem:";
     this._errorSources[GLSL.Error.Type.FragmentShaderParsing] = "Fragment Shader Parsing Problem:";
     this._errorSources[GLSL.Error.Type.VertexShaderTranslation] = "Vertex Shader Translation Problem:";
-    this._errorSources[GLSL.Error.Type.FragmentShaderTranslation] = "Fragment Shader Parsing Problem:";
+    this._errorSources[GLSL.Error.Type.FragmentShaderTranslation] = "Fragment Shader Translation Problem:";
+    this._errorSources[GLSL.Error.Type.VertexShaderExecution] = "Vertex Shader Execution Problem:";
+    this._errorSources[GLSL.Error.Type.FragmentShaderExecution] = "Fragment Shader Execution Problem:";
 
     this.element = document.createElement("div");
     this.element.classList.add("results-viewer");
