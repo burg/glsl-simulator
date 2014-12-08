@@ -1,0 +1,249 @@
+#demo-container {
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    flex-wrap: nowrap;
+    -webkit-flex-wrap: nowrap;
+    justify: space-around;
+    -webkit-justify: space-around;
+
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    overflow: none;
+}
+
+#demo-container > div {
+    width: 50%;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+    flex-wrap: nowrap;
+    -webkit-flex-wrap: nowrap;
+}
+
+#demo-header {
+    height: 30px;
+    font: 14px Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    line-height: 28px;
+    text-transform: uppercase;
+    padding-left: 20px;
+}
+
+.editor-options {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    z-index: 1000;
+    background-color: rgba(200, 200, 200, 0.6);
+    border: #ccc solid 1px;
+}
+
+.editor-options ul {
+    list-style-type: none;
+    font-size: 12px;
+    font-family: Myriad Pro, Helvetica, sans-serif;
+    margin: 10px;
+    padding: 0;
+}
+
+.editor-options li {
+    margin: 4px 0;
+}
+
+.editor-options input[type=checkbox] {
+    float: left;
+    margin-right: 5px;
+}
+
+.shader-editor {
+    border: solid 3px #c99;
+    -webkit-flex-grow: 1;
+    flex-grow: 1;
+    position: relative;
+}
+
+.shader-editor .stub {
+    height: 100%;
+}
+
+.CodeMirror-scroll {
+  overflow: auto;
+  height: 100%;
+  /* This is needed to prevent an IE[67] bug where the scrolled content
+     is visible outside of the scrolling box. */
+  position: relative;
+  outline: none;
+}
+
+.results-viewer {
+    overflow: scroll;
+    border: solid 3px #9c9;
+    position: relative;
+    flex-grow: 1;
+    -webkit-flex-grow: 1;
+}
+
+.results-viewer .output-options {
+    position: fixed;
+    right: 20px;
+    display: inline;
+    z-index: 1000;
+}
+
+.results-viewer .output {
+    white-space: pre;
+    font-family: Menlo, monospace;
+    font-size: 12px;
+
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 0; right: 0;
+}
+
+.results-viewer.error-message .output {
+    top: 50%;
+    padding: 0 30px;
+
+    color: #c33;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.results-viewer.error-message .output-options select {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.variable-list {
+    border: solid 3px #99c;
+    height: 200px;
+    overflow-y: scroll;
+}
+
+.variable-row {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.variable-row.out {
+    background-color: #f5f5f5;
+}
+
+span.variable-usage {
+    text-transform: uppercase;
+    text-align: center;
+    font-family: Arial;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    background-color: #fff;
+
+    border-radius: 4px;
+    border: solid 2px #ccc;
+
+    margin: 0px 5px;
+    padding: 2px;
+    width: 25px;
+}
+
+span.variable-qualifier {
+    text-transform: uppercase;
+    text-align: center;
+    font-family: Arial;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    background-color: #fff;
+
+    border-radius: 4px;
+    border: solid 2px #ccc;
+
+    padding: 2px;
+    margin: 0px 5px;
+    width: 60px;
+}
+
+.variable-qualifier.uniform {
+    color: #1b7837;
+}
+
+.variable-qualifier.varying {
+    color: #b2182b;
+}
+
+.variable-qualifier.attribute {
+    color: #3288bd;
+}
+
+span.variable-label {
+    width: 20%;
+    text-align: right;
+    line-height: 25px;
+    padding-right: 10px;
+    padding-top: 5px;
+    font-size: 16px;
+    font-family: Myriad Pro, Helvetica, sans-serif;
+}
+
+span.variable-label.builtin {
+    font-style: italic;
+}
+
+span.variable-type {
+    font-family: Arial;
+    font-size: 10px;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    padding: 2px;
+}
+
+span.variable-type,
+span.variable-type.float {
+    background-color: rgb(166, 171, 183);
+    border: solid 2px rgb(86, 100, 138);
+    text-shadow: 1px 1px 2px rgb(86, 100, 138);
+}
+
+span.variable-type.vec2,
+span.variable-type.vec3,
+span.variable-type.vec4 {
+    background-color: rgb(149, 192, 148);
+    border: solid 2px rgb(100, 137, 97);
+    text-shadow: 1px 1px 2px rgb(100, 137, 97);
+}
+
+span.variable-type.mat2,
+span.variable-type.mat3,
+span.variable-type.mat4 {
+    background-color: rgb(171, 143, 186);
+    border: solid 2px rgb(119, 94, 131);
+    text-shadow: 1px 1px 2px rgb(119, 94, 131);
+}
+
+table.variable-cells {
+    font-family: monospace;
+    font-size: 16px;
+}
+
+table.variable-cells input[type="text"] {
+    font-size: 12px;
+    font-family: Menlo, monospace;
+    width: 4em;
+}
+
+.invalid-input {
+    color: rgb(224, 8, 97);
+}
+
+.valid-input {
+    color: rgb(24, 47, 117);
+}
