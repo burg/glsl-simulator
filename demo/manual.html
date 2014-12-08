@@ -260,8 +260,8 @@ table.variable-cells input[type="text"] {
 }
 
 .inverted {
-    filter: invert(100%);
-    -webkit-filter: invert(100%);
+    filter: invert(0%);
+    -webkit-filter: invert(0%);
 }
 
 </style>
@@ -343,7 +343,6 @@ var DemoModel = function()
     // Map from "name_type" to previous GLSL value.
     this._previousInputs = {};
 
-    this.results = new Map;
     this._resetEnvironment();
 };
 
@@ -376,7 +375,6 @@ DemoModel.prototype = {
         }
 
         this._resetEnvironment();
-        this.results.clear();
 
         this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader});
 
@@ -414,23 +412,26 @@ DemoModel.prototype = {
 
     _resetEnvironment: function()
     {
-        function setDefaultValue(env, variable) {
-            var value = 0.0;
+        var model = this;
 
-            switch (variable.type) {
-            case "bool": value = true; break;
-            case "vec2": value = GLSL.Runtime.Vec2(0, 0); break;
-            case "vec3": value = GLSL.Runtime.Vec3(0, 0, 0); break;
-            case "vec4": value = GLSL.Runtime.Vec4(0, 0, 0, 0); break;
-            case "mat2": value = GLSL.Runtime.Mat2(0, 0,
-                                                   0 ,0); break;
-            case "mat3": value = GLSL.Runtime.Mat3(0, 0, 0,
-                                                   0, 0, 0,
-                                                   0, 0, 0); break;
-            case "mat4": value = GLSL.Runtime.Mat4(0, 0, 0, 0,
-                                                   0, 0, 0, 0,
-                                                   0, 0, 0, 0,
-                                                   0, 0, 0, 0); break;
+        function setDefaultValue(env, variable) {
+            var value = model.getSuggestedVariableValue(variable) || 0.0;
+            if (!value) {
+                switch (variable.type) {
+                case "bool": value = true; break;
+                case "vec2": value = GLSL.Runtime.Vec2(0, 0); break;
+                case "vec3": value = GLSL.Runtime.Vec3(0, 0, 0); break;
+                case "vec4": value = GLSL.Runtime.Vec4(0, 0, 0, 0); break;
+                case "mat2": value = GLSL.Runtime.Mat2(0, 0,
+                                                       0 ,0); break;
+                case "mat3": value = GLSL.Runtime.Mat3(0, 0, 0,
+                                                       0, 0, 0,
+                                                       0, 0, 0); break;
+                case "mat4": value = GLSL.Runtime.Mat4(0, 0, 0, 0,
+                                                       0, 0, 0, 0,
+                                                       0, 0, 0, 0,
+                                                       0, 0, 0, 0); break;
+                }
             }
 
             env.set(variable.name, value);
@@ -637,18 +638,18 @@ OutputView.prototype = {
 
         case "output":
             if (this.activeShaderType === GLSL.Shader.Type.Fragment) {
-                var color = this.model.env.get('gl_FragColor');
-                if (!color)
+                var rawColor = this.model.env.get('gl_FragColor');
+                if (!rawColor)
                     break;
 
-                color = GLSL.Runtime.clamp(this.model.env.get('gl_FragColor'), 0.0, 1.0);
-                hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
+                var color = GLSL.Runtime.clamp(this.model.env.get('gl_FragColor'), 0.0, 1.0);
+                var hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
                 var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
+                var vectorString = [rawColor.get("r"), rawColor.get("g"), rawColor.get("b"), rawColor.get("a")].join(", ");
                 this.outputElement.style.backgroundColor = colorString;
-                this.outputElement.style.webkitFilter = "invert(100%);"
                 var text = this.outputElement.appendChild(document.createElement("span"));
                 text.classList.add("inverted");
-                text.textContent = "gl_FragColor = " + colorString;
+                text.textContent = "gl_FragColor = [" + vectorString + "]\n\n(color: " + colorString + ")";
             }
 
             if (this.activeShaderType === GLSL.Shader.Type.Vertex) {
