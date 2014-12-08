@@ -170,4 +170,20 @@ console.log("mat.divide", r.mat(mat1).divide(mat3));
 console.log("mat.matrixCompMult", r.mat(mat1).matrixCompMult(mat3));
 console.log("mat.multiply", r.mat(mat1).multiply(mat3));
 
+// Testing texture lookup
+var arr = [];
+for (var i = 0; i < 100; i++) {
+	var row = [];
+	for (var j = 0; j < 200; j++) {
+		row.push([1, 0.5, 0.3, 0.1]);
+	}
+	arr.push(row);
+}
+
+var s1 = new r.sampler("aaa", "img1");
+r.textureAdd(s1, 2, arr);
+var v = r.texture2D(s1, r.Vec2(0.8, 0.8));
+
+console.log(v);
+
 //})(GLSL.r, options)
