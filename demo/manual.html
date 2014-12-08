@@ -43,11 +43,30 @@
     padding-left: 20px;
 }
 
-#editor-selector {
+.editor-options {
     position: absolute;
-    right: 20px;
+    right: 5px;
     top: 5px;
     z-index: 1000;
+    background-color: rgba(200, 200, 200, 0.6);
+    border: #ccc solid 1px;
+}
+
+.editor-options ul {
+    list-style-type: none;
+    font-size: 12px;
+    font-family: Myriad Pro, Helvetica, sans-serif;
+    margin: 10px;
+    padding: 0;
+}
+
+.editor-options li {
+    margin: 4px 0;
+}
+
+.editor-options input[type=checkbox] {
+    float: left;
+    margin-right: 5px;
 }
 
 #variable-list {
@@ -346,7 +365,11 @@ DemoModel.prototype = {
     {
         try {
             var oldShader = this._program.shaderWithType(shaderType);
+            if (oldShader)
+                oldShader.removeEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
+
             var newShader = new GLSL.Shader(text, shaderType);
+            newShader.addEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
             this._program.insertShader(newShader);
         } catch (e) {
             this.dispatchEventToListeners(DemoModel.Event.Error, {type: e.type, message: e.message});
@@ -423,6 +446,11 @@ DemoModel.prototype = {
             return;
 
         this.dispatchEventToListeners(DemoModel.Event.ResultChanged);
+    },
+
+    _shaderExecutableChanged: function(event)
+    {
+        this._runShaders();
     }
 };
 
@@ -618,19 +646,33 @@ var EditorView = function(model) {
     this.element = document.createElement("div");
     this.element.id = "shader-editor";
 
-    this.selectorElement = document.createElement("select");
-        this.selectorElement.id = "editor-selector";
-        var option = null;
-            option = document.createElement("option");
-            option.text = "Vertex Shader";
-            option.value = GLSL.Shader.Type.Vertex;
-        this.selectorElement.add(option, null);
+    var item = null;
 
-        option = document.createElement("option");
-            option.text = "Fragment Shader";
-            option.value = GLSL.Shader.Type.Fragment;
-        this.selectorElement.add(option, null);
-    this.element.appendChild(this.selectorElement);
+    this.optionsElement = document.createElement("span");
+        this.optionsElement.classList.add("editor-options");
+        var optionsList = this.optionsElement.appendChild(document.createElement("ul"));
+        this.selectorElement = document.createElement("select");
+            this.selectorElement.id = "editor-selector";
+            var option = null;
+                option = document.createElement("option");
+                option.text = "Vertex Shader";
+                option.value = GLSL.Shader.Type.Vertex;
+            this.selectorElement.add(option, null);
+
+            option = document.createElement("option");
+                option.text = "Fragment Shader";
+                option.value = GLSL.Shader.Type.Fragment;
+            this.selectorElement.add(option, null);
+            item = optionsList.appendChild(document.createElement("li"));
+        item.appendChild(this.selectorElement);
+        var checkboxLabel = document.createElement("label");
+            this.emitDebuggerCheckbox = document.createElement("input");
+                this.emitDebuggerCheckbox.type = "checkbox";
+            checkboxLabel.textContent = "Pause Inside Shader";
+            checkboxLabel.appendChild(this.emitDebuggerCheckbox);
+            item = optionsList.appendChild(document.createElement("li"));
+        item.appendChild(checkboxLabel);
+    this.element.appendChild(this.optionsElement);
 
     // Select the fragment shader by default.
     this.selectorElement.options[1].selected = true;
@@ -650,9 +692,8 @@ var EditorView = function(model) {
         lineNumbers: true
     });
 
-    this._cm.on("changes", function shaderEditorContentChanged() {
-        this.model.updateShaderWithType(this.activeShaderType, this._cm.getValue());
-    }.bind(this));
+    this._cm.on("changes", this._shaderEditorContentChanged.bind(this));
+    this.emitDebuggerCheckbox.addEventListener("change", this._emitDebuggerCheckboxChanged.bind(this));
 };
 
 EditorView.Event = {
@@ -703,7 +744,18 @@ EditorView.prototype = {
 
         this.refresh();
         this.dispatchEventToListeners(EditorView.Event.ShaderTypeChanged, this.activeShaderType);
-    }
+    },
+
+    _shaderEditorContentChanged: function(event)
+    {
+        this.model.updateShaderWithType(this.activeShaderType, this._cm.getValue());
+    },
+
+    _emitDebuggerCheckboxChanged: function(event)
+    {
+        var activeShader = this.model.shaderWithType(this.activeShaderType);
+        activeShader.shouldEmitDebuggerStatement = !!this.emitDebuggerCheckbox.checked;
+    },
 };
 
 var VariableView = function(variable, suggestedValue) {
