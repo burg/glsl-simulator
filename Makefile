@@ -12,6 +12,7 @@ MODULES = error                                 \
           runtime/vector                        \
           runtime/matrix                        \
           runtime/access                        \
+          runtime/internal                      \
           runtime/builtins                      \
           runtime/ops                           \
           runtime/environment                   \
