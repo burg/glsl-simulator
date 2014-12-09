@@ -54,7 +54,7 @@ var VariableView = function(variable, suggestedValue) {
             var input = cell.appendChild(document.createElement("input"));
             input.type = "text";
             input.maxLength = 5;
-            input.placeholder = "0.0";
+            input.placeholder = "1.0";
             if (variable.usage === "out")
                 input.readOnly = true;
             this._fields.push(input);
