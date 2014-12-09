@@ -137,6 +137,14 @@ test.func("set", r.mat(100, 200, 300, 400), 0, 1, -300, r.mat(100, 200, -300, 40
 test.func("set", r.mat(100, 200, 300, 400), 0, r.Vec3(-1, -3, -4), r.mat(-1, 200, -3, 400));
 test.func("set", r.mat(100, 200, 300, 400), 0, "yxy", r.Vec3(-1, -3, -4), r.mat(-3, 200, -4, 400));
 
+// ops tests
+test.func("op_mod", 10.5, 2, 0.5);
+test.func("op_mod", r.Vec2(10.5, 4.5), r.Vec2(2, 1.5), r.Vec2(0.5, 0));
+test.func("op_add", 10.5, 2, 12.5);
+test.func("op_add", r.Vec2(10.5, 4.5), r.Vec2(2, 1.5), r.Vec2(12.5, 6));
+test.func("op_shl", 1, 2, 4);
+test.func("op_shl", r.Vec2(1, 6), r.Vec2(2, 4), r.Vec2(4, 96));
+
 test.done();
 
 var mat0 = r.Mat2(
