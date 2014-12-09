@@ -147,11 +147,12 @@ window.addEventListener("load", function initEditors() {
 
     program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
         recreateVariableList.call(null, event);
-
         env.reset();
-        env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
-        env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
-        program.runShaders(env);
+
+        env.enterEditScope();
+            env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
+            env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
+        env.exitEditScope();
     });
 
     env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
