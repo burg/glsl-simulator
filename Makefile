@@ -12,8 +12,8 @@ MODULES = error                                 \
           runtime/vector                        \
           runtime/matrix                        \
           runtime/access                        \
-          runtime/ops                           \
           runtime/builtins                      \
+          runtime/ops                           \
           runtime/environment                   \
           runtime                               \
           compiler/ast                          \
