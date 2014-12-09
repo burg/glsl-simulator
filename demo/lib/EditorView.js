@@ -1,5 +1,5 @@
-var EditorView = function(model) {
-    this.model = model;
+var EditorView = function(program) {
+    this.program = program;
 
     this.element = document.createElement("div");
     this.element.classList.add("shader-editor");
@@ -84,7 +84,7 @@ EditorView.prototype = {
     {
         this.autosizeHeight();
 
-        var selectedShader = this.model.shaderWithType(this.activeShaderType);
+        var selectedShader = this.program.shaderWithType(this.activeShaderType);
         this._cm.setValue(selectedShader ? selectedShader.sourceText : "");
     },
 
@@ -101,18 +101,22 @@ EditorView.prototype = {
         console.assert(event.target === this.selectorElement, event.target);
         console.assert(event.target.selectedIndex != -1, event.target);
 
+        var inactiveShaderType = (this.activeShaderType === GLSL.Shader.Type.Vertex) ? GLSL.Shader.Type.Fragment : GLSL.Shader.Type.Vertex;
+        this.program.shaderWithType(inactiveShaderType).shouldEmitDebuggerStatement = false;
+        this.program.shaderWithType(this.activeShaderType).shouldEmitDebuggerStatement = !!this.emitDebuggerCheckbox.checked;
+
         this.refresh();
         this.dispatchEventToListeners(EditorView.Event.ShaderTypeChanged, this.activeShaderType);
     },
 
     _shaderEditorContentChanged: function(event)
     {
-        this.model.updateShaderWithType(this.activeShaderType, this._cm.getValue());
+        this.program.updateShaderWithType(this.activeShaderType, this._cm.getValue());
     },
 
     _emitDebuggerCheckboxChanged: function(event)
     {
-        var activeShader = this.model.shaderWithType(this.activeShaderType);
+        var activeShader = this.program.shaderWithType(this.activeShaderType);
         activeShader.shouldEmitDebuggerStatement = !!this.emitDebuggerCheckbox.checked;
     },
 };

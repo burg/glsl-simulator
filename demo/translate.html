@@ -96,6 +96,9 @@ var DemoModel = function()
     // Map from "name_type" to previous GLSL value.
     this._previousInputs = {};
 
+    GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
+    this._program.addEventListener(GLSL.Program.Event.ShaderChanged, this._shaderSourceChanged, this);
+
     this._resetEnvironment();
 };
 
@@ -111,28 +114,6 @@ DemoModel.prototype = {
     constructor: DemoModel,
 
     // Public
-
-    updateShaderWithType: function(shaderType, text)
-    {
-        try {
-            var oldShader = this._program.shaderWithType(shaderType);
-            if (oldShader)
-                oldShader.removeEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
-
-            var newShader = new GLSL.Shader(text, shaderType);
-            newShader.addEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
-            this._program.insertShader(newShader);
-        } catch (e) {
-            this.dispatchEventToListeners(DemoModel.Event.Error, {type: e.type, message: e.message});
-            return;
-        }
-
-        this._resetEnvironment();
-
-        this.dispatchEventToListeners(DemoModel.Event.ShaderChanged, {oldShader: oldShader, shader: newShader});
-
-        this._runShaders();
-    },
 
     shaderWithType: function(shaderType)
     {
@@ -244,6 +225,12 @@ DemoModel.prototype = {
     _shaderExecutableChanged: function(event)
     {
         this._runShaders();
+    },
+
+    _shaderSourceChanged: function(event)
+    {
+        this._resetEnvironment();
+        this._runShaders();
     }
 };
 
@@ -259,7 +246,7 @@ window.addEventListener("load", function initEditors() {
 
     var variableList = new VariableListView(null, suggestedVariableValueCallback);
     leftSide.appendChild(variableList.element);
-    var editor = new EditorView(model);
+    var editor = new EditorView(model._program);
     leftSide.appendChild(editor.element);
 
     var resultsTop = new DebugView(model, "top");
@@ -282,7 +269,7 @@ window.addEventListener("load", function initEditors() {
     }
 
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
-    model.addEventListener(DemoModel.Event.ShaderChanged, recreateVariableList);
+    model._program.addEventListener(GLSL.Program.Event.ShaderChanged, recreateVariableList);
 
     model.addEventListener(DemoModel.Event.ResultChanged, function refreshViews(event) {
         variableList.populateResults(model.env);
@@ -307,8 +294,8 @@ window.addEventListener("load", function initEditors() {
 
     window.addEventListener("resize", editor.autosizeHeight.bind(editor));
 
-    model.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
-    model.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
+    model._program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
+    model._program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
     editor.refresh();
 
     // Change these defaults if you want to start somewhere else.
