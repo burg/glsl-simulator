@@ -138,6 +138,14 @@ test.func("set", r.mat(100, 200, 300, 400), 0, r.Vec3(-1, -3, -4), r.mat(-1, 200
 test.func("set", r.mat(100, 200, 300, 400), 0, "yxy", r.Vec3(-1, -3, -4), r.mat(-3, 200, -4, 400));
 
 // ops tests
+test.func("op_pos", r.Vec2(10, -1.4), r.Vec2(10, -1.4));
+test.func("op_neg", r.Vec2(10, -1.4), r.Vec2(-10, 1.4));
+
+test.func("op_bnot", r.Vec2(5, 1), r.Vec2(-6, 2)); // wrong
+test.func("op_lnot", r.Vec2(10, -1), r.Vec2(false, true)); // wrong
+test.func("op_eq", r.Vec2(10, -1,4), r.Vec2(1, -1.4), false);
+test.func("op_neq", r.Vec2(10, -1,4), r.Vec2(1, -1.4), true);
+
 test.func("op_mod", 10.5, 2, 0.5);
 test.func("op_mod", r.Vec2(10.5, 4.5), r.Vec2(2, 1.5), r.Vec2(0.5, 0));
 test.func("op_add", 10.5, 2, 12.5);
