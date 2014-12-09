@@ -18,12 +18,12 @@ MODULES = error                                 \
           runtime                               \
           compiler/ast                          \
           compiler/visitor                      \
+          compiler/typecheck                    \
           compiler/pretty                       \
           compiler/codegen                      \
           compiler/parser                       \
           compiler/shader                       \
           compiler/program                      \
-          compiler/typecheck                    \
           glsl                                  \
 
 

@@ -89,179 +89,54 @@ void main( void ) {
 </script>
 
 <script type="text/javascript">
+var program = null;
+var env = null;
 
-var DemoModel = function()
-{
-    this._program = new GLSL.Program;
-    // Map from "name_type" to previous GLSL value.
-    this._previousInputs = {};
-
-    GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, this._shaderExecutableChanged, this);
-    this._program.addEventListener(GLSL.Program.Event.ShaderChanged, this._shaderSourceChanged, this);
-
-    this._resetEnvironment();
-};
-
-DemoModel.Event = {
-    ShaderChanged: "demo-model-shader-changed",
-    InputsChanged: "demo-model-inputs-changed",
-    ResultChanged: "demo-model-result-changed",
-    Error: "demo-model-error"
-};
-
-DemoModel.prototype = {
-    __proto__: GLSL.Object.prototype,
-    constructor: DemoModel,
-
-    // Public
-
-    shaderWithType: function(shaderType)
-    {
-        return this._program.shaderWithType(shaderType);
-    },
-
-    getSuggestedVariableValue: function(variable)
-    {
-        if (!variable || variable.readOnly)
-            return null;
-
-        var key = [variable.name, variable.type].join("_");
-        if (key in this._previousInputs)
-            return this._previousInputs[key];
-
+function getSuggestedVariableValue(savedInputs, variable) {
+    if (!variable || variable.readOnly)
         return null;
-    },
 
-    setVariableValue: function(variable, value)
-    {
-        this.env.set(variable.name, value);
-        var key = [variable.name, variable.type].join("_");
-        this._previousInputs[key] = value;
-        this.dispatchEventToListeners(DemoModel.Event.InputsChanged, {variable: variable});
+    var key = [variable.name, variable.type].join("_");
+    if (key in savedInputs)
+        return savedInputs[key];
 
-        this._runShaders();
-    },
-
-    // Private
-
-    _resetEnvironment: function()
-    {
-        var model = this;
-
-        function setDefaultValue(env, variable) {
-            var value = model.getSuggestedVariableValue(variable) || 0.0;
-            if (!value) {
-                switch (variable.type) {
-                case "bool": value = true; break;
-                case "vec2": value = GLSL.Runtime.Vec2(0, 0); break;
-                case "vec3": value = GLSL.Runtime.Vec3(0, 0, 0); break;
-                case "vec4": value = GLSL.Runtime.Vec4(0, 0, 0, 0); break;
-                case "mat2": value = GLSL.Runtime.Mat2(0, 0,
-                                                       0 ,0); break;
-                case "mat3": value = GLSL.Runtime.Mat3(0, 0, 0,
-                                                       0, 0, 0,
-                                                       0, 0, 0); break;
-                case "mat4": value = GLSL.Runtime.Mat4(0, 0, 0, 0,
-                                                       0, 0, 0, 0,
-                                                       0, 0, 0, 0,
-                                                       0, 0, 0, 0); break;
-                }
-            }
-
-            env.set(variable.name, value);
-        }
-
-        function setDefaultValuesForShader(shader, env) {
-            if (!shader)
-                return;
-
-            shader.uniforms.map(setDefaultValue.bind(null, env));
-            shader.attributes.map(setDefaultValue.bind(null, env));
-            if (shader.type === GLSL.Shader.Type.Fragment)
-                shader.varyings.map(setDefaultValue.bind(null, env));
-        }
-
-        this.env = new GLSL.Environment;
-        setDefaultValuesForShader(this.shaderWithType(GLSL.Shader.Type.Vertex), this.env);
-        setDefaultValuesForShader(this.shaderWithType(GLSL.Shader.Type.Fragment), this.env);
-
-    },
-
-    _runShaders: function()
-    {
-        function invokeShaderOrFail(shader) {
-            if (!shader)
-                return true;
-
-            if (shader.executable.error) {
-                var errorType = (shader.type === GLSL.Shader.Type.Vertex) ? GLSL.Error.Type.VertexShaderTranslation : GLSL.Error.Type.FragmentShaderTranslation;
-                var data = {type: errorType, message: shader.executable.error};
-                this.dispatchEventToListeners(DemoModel.Event.Error, data);
-                return false;
-            }
-
-            try {
-                shader.executable.code.call(null, GLSL, this.env);
-            } catch (e) {
-                var errorType = (shader.type === GLSL.Shader.Type.Vertex) ? GLSL.Error.Type.VertexShaderExecution : GLSL.Error.Type.FragmentShaderExecution;
-                this.dispatchEventToListeners(DemoModel.Event.Error, {type: errorType, message: e.message});
-                return false;
-            }
-
-            return true;
-        }
-
-        var vertexShader = this.shaderWithType(GLSL.Shader.Type.Vertex);
-        if (!invokeShaderOrFail.call(this, vertexShader))
-            return;
-
-        var fragmentShader = this.shaderWithType(GLSL.Shader.Type.Fragment);
-        if (!invokeShaderOrFail.call(this, fragmentShader))
-            return;
-
-        this.dispatchEventToListeners(DemoModel.Event.ResultChanged);
-    },
-
-    _shaderExecutableChanged: function(event)
-    {
-        this._runShaders();
-    },
-
-    _shaderSourceChanged: function(event)
-    {
-        this._resetEnvironment();
-        this._runShaders();
-    }
-};
-
-var model = null;
+    return null;
+}
 
 window.addEventListener("load", function initEditors() {
-    model = new DemoModel();
+    program = new GLSL.Program;
+    env = new GLSL.Environment;
+
+    var previousInputs = {}; // Map from "name_type" to previous GLSL value.
+    var suggestedVariableValueCallback = getSuggestedVariableValue.bind(null, previousInputs);
 
     var leftSide = document.getElementById("left-side");
     var rightSide = document.getElementById("right-side");
 
-    var suggestedVariableValueCallback = DemoModel.prototype.getSuggestedVariableValue.bind(model);
-
     var variableList = new VariableListView(null, suggestedVariableValueCallback);
-    leftSide.appendChild(variableList.element);
-    var editor = new EditorView(model._program);
-    leftSide.appendChild(editor.element);
+    var editor = new EditorView(program);
+    var resultsTop = new DebugView(program, env, "top");
+    var resultsBottom = new DebugView(program, env, "bottom");
 
-    var resultsTop = new DebugView(model, "top");
+    leftSide.appendChild(variableList.element);
+    leftSide.appendChild(editor.element);
     rightSide.appendChild(resultsTop.element);
-    var resultsBottom = new DebugView(model, "bottom");
     rightSide.appendChild(resultsBottom.element);
 
     function variableValueInputChanged(event) {
         var variable = event.data.variable;
-        model.setVariableValue(variable, event.data.value);
+        var key = [variable.name, variable.type].join("_");
+        var value = event.data.value;
+        previousInputs[key] = value;
+
+        env.enterEditScope();
+        env.set(variable.name, value);
+        env.exitEditScope();
     }
 
     function recreateVariableList() {
         variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-        var newList = new VariableListView(model.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
+        var newList = new VariableListView(program.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
         newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
 
         leftSide.replaceChild(newList.element, variableList.element);
@@ -269,15 +144,30 @@ window.addEventListener("load", function initEditors() {
     }
 
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
-    model._program.addEventListener(GLSL.Program.Event.ShaderChanged, recreateVariableList);
+    program.addEventListener(GLSL.Program.Event.ShaderChanged, recreateVariableList);
 
-    model.addEventListener(DemoModel.Event.ResultChanged, function refreshViews(event) {
-        variableList.populateResults(model.env);
+    program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader() {
+        env.reset();
+        env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
+        env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
+        program.runShaders(env);
+    });
+
+    env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
+        program.runShaders(env);
+    });
+
+    GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, function runWithNewExecutable() {
+        program.runShaders(env);
+    });
+
+    env.addEventListener(GLSL.Environment.Event.ResultChanged, function refreshOutputViews(event) {
+        variableList.populateResults(env);
         resultsTop.refresh();
         resultsBottom.refresh();
     });
 
-    model.addEventListener(DemoModel.Event.Error, function displayError(event) {
+    program.addEventListener(GLSL.Program.Event.Error, function displayError(event) {
         var errorType = event.data.type;
         if (errorType === GLSL.Error.Type.VertexShaderTranslation || GLSL.Error.Type.VertexShaderExecution) {
             resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
@@ -294,8 +184,8 @@ window.addEventListener("load", function initEditors() {
 
     window.addEventListener("resize", editor.autosizeHeight.bind(editor));
 
-    model._program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
-    model._program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
+    program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
+    program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
     editor.refresh();
 
     // Change these defaults if you want to start somewhere else.

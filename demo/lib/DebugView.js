@@ -1,6 +1,9 @@
-var DebugView = function(model, which) {
-    console.assert(model instanceof DemoModel);
-    this.model = model;
+var DebugView = function(program, env, which) {
+    console.assert(program instanceof GLSL.Program);
+    console.assert(env instanceof GLSL.Environment);
+
+    this.program = program;
+    this.env = env;
 
     this._errorSources = {};
     this._errorSources[GLSL.Error.Type.VertexShaderParsing] = "Vertex Shader Parsing Problem:";
@@ -62,8 +65,8 @@ var DebugView = function(model, which) {
 
     this.shaderSelectorElement.addEventListener("change", this.refresh.bind(this));
     this.outputSelectorElement.addEventListener("change", this.refresh.bind(this));
-    this.model.addEventListener(DemoModel.Event.ShaderChanged, this.refresh, this);
-    this.model.addEventListener(DemoModel.Event.ResultChanged, this.refresh, this);
+    this.program.addEventListener(GLSL.Program.Event.ShaderChanged, this.refresh, this);
+    this.env.addEventListener(GLSL.Environment.Event.ResultChanged, this.refresh, this);
 };
 
 DebugView.prototype = {
@@ -121,7 +124,7 @@ DebugView.prototype = {
             delete this.outputElement;
         }
 
-        var shader = this.model.shaderWithType(this.activeShaderType);
+        var shader = this.program.shaderWithType(this.activeShaderType);
         if (!shader)
             return;
 
@@ -142,11 +145,11 @@ DebugView.prototype = {
 
         case "output":
             if (this.activeShaderType === GLSL.Shader.Type.Fragment) {
-                var rawColor = this.model.env.get('gl_FragColor');
+                var rawColor = this.env.get('gl_FragColor');
                 if (!rawColor)
                     break;
 
-                var color = GLSL.Runtime.clamp(this.model.env.get('gl_FragColor'), 0.0, 1.0);
+                var color = GLSL.Runtime.clamp(this.env.get('gl_FragColor'), 0.0, 1.0);
                 var hex = GLSL.Runtime.floor(color.get("rgb").multiply(255.0));
                 var colorString = "rgba(" + [hex.get('r'), hex.get('g'), hex.get('b'), color.get('a')].join(", ") + ")";
                 var vectorString = [rawColor.get("r"), rawColor.get("g"), rawColor.get("b"), rawColor.get("a")].join(", ");
@@ -157,8 +160,8 @@ DebugView.prototype = {
             }
 
             if (this.activeShaderType === GLSL.Shader.Type.Vertex) {
-                var position = this.model.env.get('gl_Position');
-                var pointSize = this.model.env.get('gl_PointSize');
+                var position = this.env.get('gl_Position');
+                var pointSize = this.env.get('gl_PointSize');
 
                 if (!position && !pointSize)
                     break;
