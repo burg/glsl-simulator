@@ -255,7 +255,9 @@ window.addEventListener("load", function initEditors() {
     var leftSide = document.getElementById("left-side");
     var rightSide = document.getElementById("right-side");
 
-    var variableList = new VariableListView(model, null);
+    var suggestedVariableValueCallback = DemoModel.prototype.getSuggestedVariableValue.bind(model);
+
+    var variableList = new VariableListView(null, suggestedVariableValueCallback);
     leftSide.appendChild(variableList.element);
     var editor = new EditorView(model);
     leftSide.appendChild(editor.element);
@@ -265,15 +267,29 @@ window.addEventListener("load", function initEditors() {
     var resultsBottom = new DebugView(model, "bottom");
     rightSide.appendChild(resultsBottom.element);
 
+    function variableValueInputChanged(event) {
+        var variable = event.data.variable;
+        model.setVariableValue(variable, event.data.value);
+    }
+
     function recreateVariableList() {
-        newList = new VariableListView(model, editor.activeShaderType);
+        variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
+        var newList = new VariableListView(model.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
+        newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
+
         leftSide.replaceChild(newList.element, variableList.element);
-        variableList.willHide();
         variableList = newList;
     }
 
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
     model.addEventListener(DemoModel.Event.ShaderChanged, recreateVariableList);
+
+    model.addEventListener(DemoModel.Event.ResultChanged, function refreshViews(event) {
+        variableList.populateResults(model.env);
+        resultsTop.refresh();
+        resultsBottom.refresh();
+    });
+
     model.addEventListener(DemoModel.Event.Error, function displayError(event) {
         var errorType = event.data.type;
         if (errorType === GLSL.Error.Type.VertexShaderTranslation || GLSL.Error.Type.VertexShaderExecution) {

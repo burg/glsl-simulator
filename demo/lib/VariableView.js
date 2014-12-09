@@ -150,22 +150,19 @@ VariableView.prototype = {
     }
 };
 
-var VariableListView = function(model, shaderType) {
-    this.model = model;
-    this.shader = shaderType ? this.model.shaderWithType(shaderType) : null;
+var VariableListView = function(shader, suggestedVariableValueCallback) {
+    this.shader = shader;
 
     this._variableMap = new Map;
 
     this.element = document.createElement("div");
     this.element.classList.add("variable-list");
 
-    this.model.addEventListener(DemoModel.Event.ResultChanged, this._resultsChanged, this);
-
     if (!this.shader)
         return;
 
     function createVariable(variable) {
-        var view = new VariableView(variable, this.model.getSuggestedVariableValue(variable));
+        var view = new VariableView(variable, suggestedVariableValueCallback(variable));
         this._variableMap.set(variable, view);
         this.element.appendChild(view.element);
 
@@ -180,33 +177,35 @@ var VariableListView = function(model, shaderType) {
     this.shader.varyings.map(createVariable.bind(this));
 };
 
+VariableListView.Event = {
+    VariableValueChanged: "variable-list-view-variable-value-changed"
+};
+
 VariableListView.prototype = {
     constructor: VariableListView,
     __proto__: GLSL.Object.prototype,
 
     // Public
 
-    willHide: function()
+    populateResults: function(env)
     {
-        this.model.removeEventListener(DemoModel.Event.ResultChanged, this._resultsChanged, this);
+        console.assert(env instanceof GLSL.Environment, env);
+
+        this._variableMap.forEach(function(value, key, map) {
+            var variable = key, view = value;
+            var storedValue = env.get(variable.name);
+
+            if (!variable.readOnly && storedValue)
+                view.insertValue(storedValue);
+        }, this);
     },
 
     // Private
 
     _inputChanged: function(event)
     {
-        var variableView = event.target;
-        this.model.setVariableValue(variableView.variable, variableView.extractValue());
-    },
-
-    _resultsChanged: function()
-    {
-        this._variableMap.forEach(function(value, key, map) {
-            var variable = key, view = value;
-            var storedValue = this.model.env.get(variable.name);
-
-            if (!variable.readOnly && storedValue)
-                view.insertValue(storedValue);
-        }, this);
+        var view = event.target;
+        var data = {variable: view.variable, value: view.extractValue()};
+        this.dispatchEventToListeners(VariableListView.Event.VariableValueChanged, data);
     }
 };
