@@ -146,6 +146,7 @@ window.addEventListener("load", function initEditors() {
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
 
     program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
+        resultsTop.clearError();
         recreateVariableList.call(null, event);
         env.reset();
 

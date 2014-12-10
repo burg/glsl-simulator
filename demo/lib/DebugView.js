@@ -5,6 +5,8 @@ var DebugView = function(program, env, which) {
     this.program = program;
     this.env = env;
 
+    this._showingError = false;
+
     this._errorSources = {};
     this._errorSources[GLSL.Error.Type.VertexShaderParsing] = "Vertex Shader Parsing Problem:";
     this._errorSources[GLSL.Error.Type.FragmentShaderParsing] = "Fragment Shader Parsing Problem:";
@@ -105,6 +107,8 @@ DebugView.prototype = {
 
     showErrorMessage: function(type, message)
     {
+        this._showingError = true;
+
         if (this.outputElement) {
             this.element.removeChild(this.outputElement);
             delete this.outputElement;
@@ -117,8 +121,16 @@ DebugView.prototype = {
         this.element.appendChild(this.outputElement);
     },
 
+    clearError: function()
+    {
+        this._showingError = false;
+    },
+
     refresh: function()
     {
+        if (this._showingError)
+            return;
+
         if (this.outputElement) {
             this.element.removeChild(this.outputElement);
             delete this.outputElement;
