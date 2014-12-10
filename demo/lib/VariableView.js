@@ -114,7 +114,8 @@ VariableView.prototype = {
     extractValue: function()
     {
         var values = this._fields.map(function(f) {
-            return (f.value && !f.value.endsWith(".")) ? Number(f.value) : NaN;
+            var endsWithDot = f.value && f.value.charAt(f.value.length - 1) === '.';
+            return (f.value && f.value.length && !endsWithDot) ? Number(f.value) : NaN;
         });
         if (values.some(function(v) { return isNaN(v); }))
             return null;
@@ -138,7 +139,8 @@ VariableView.prototype = {
         cell.classList.remove("valid-input");
         cell.classList.remove("invalid-input");
 
-        if (cell.value.endsWith(".") || isNaN(Number(cell.value))) {
+        var endsWithDot = cell.value && cell.value.charAt(cell.value.length - 1) === '.';
+        if (endsWithDot || isNaN(Number(cell.value))) {
             cell.classList.add("invalid-input");
             return;
         }
