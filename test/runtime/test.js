@@ -188,18 +188,30 @@ console.log("mat.multiply", r.mat(mat1).multiply(mat3));
 
 // Testing texture lookup
 var arr = [];
+var arr1 = []
 for (var i = 0; i < 100; i++) {
 	var row = [];
 	for (var j = 0; j < 200; j++) {
-		row.push([1, 0.5, 0.3, 0.1]);
+		var column = [];
+		for (var k = 0; k < 100; k++) {
+			column.push([k / 220, i / 110, 0.3, 0.1]);
+		}
+		row.push(column);
 	}
 	arr.push(row);
+	arr1.push(row[0]);
 }
 
 var s1 = new r.sampler("aaa", "img1");
-r.textureAdd(s1, 2, arr);
-var v = r.texture2D(s1, r.Vec2(0.8, 0.8));
+r.textureAdd(s1, 2, arr1);
+var v11 = r.texture2D(s1, r.Vec3(0.23, 0.82));
+var v12 = r.texture2D(s1, r.Vec3(0.235, 0.821));
+console.log(v11, v12);
 
-console.log(v);
+var s2 = new r.sampler("bbb", "img2");
+r.textureAdd(s2, 3, arr);
+var v21 = r.textureCube(s2, r.Vec3(0.235, 0.821, 0.065));
+var v22 = r.textureCube(s2, r.Vec3(0.23, 0.82, 0.06));
+console.log(v21, v22);
 
 //})(GLSL.r, options)
