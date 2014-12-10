@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-<title>glsl-simulator: manual input</title>
+<title>glsl-simulator: debugger</title>
 <link rel="stylesheet" href="external/codemirror.css" />
 <link rel="stylesheet" href="assets/shared.css" />
 <script src="../browser/glsl-simulator-0.1.0.js"></script>
@@ -17,7 +17,7 @@
 <div id="demo-container">
 <div id="left-side">
     <div id="demo-header">
-    GLSL Simulator Demo: Single Execution
+    GLSL Simulator Demo: Debugger
     </div>
 </div>
 <div id="right-side"></div>
@@ -33,50 +33,73 @@ void main()
 }
 </script>
 <script type="x-glsl-fshader" id="sample-fragment-shader">
-// Sample shader from: http://glslsandbox.com/e#21330.5
+// Shader from: https://www.shadertoy.com/view/Md2GRc
+uniform float iGlobalTime;
+uniform vec2 iMouse;
+uniform vec3 iResolution;
 
-/* Here's a block
-comment for you.
-*/
+vec3 hsv(in float h, in float s, in float v)
+{
+    return mix(vec3(1.0), clamp((abs(fract(h + vec3(3, 2, 1) / 3.0) * 6.0 - 3.0) - 1.0), 0.0 , 1.0), s) * v;
+}
 
-#ifdef GL_ES
-precision mediump float;
-#endif
+vec3 formula(in vec2 p, in vec2 c)
+{
+    const float n = 2.0;
+    const int iters = 12;
 
-uniform float time;
-uniform vec2 mouse;
-uniform vec2 resolution;
-uniform vec4 color;
+    float time = iGlobalTime*0.1;
+    vec3 col = vec3(0);
+    float t = 1.0;
+    float dpp = dot(p, p);
+    float lp = sqrt(dpp);
+    float r = smoothstep(0.0, 0.2, lp);
 
-// b/w remix
-// tomaes.32x.de 2014.11
-void main( void ) {
+    for (int i = 0; i < iters; i++) {
+        // The transformation
+        p = abs(mod(p/dpp + c, n) - n/2.0);
 
-    vec3 col = vec3(0.1,0.2,0.3);
-    vec2 pos = ( gl_FragCoord.xy / resolution.xy );
+        dpp = dot(p, p);
+        lp = sqrt(dpp);
 
-    float sd = 0.19 - (pos.y*0.004 / pos.x*0.5) - atan( pos.x + pos.y, 40.0 );
-    float so = 0.22 + pos.y*0.0003/pos.x*(0.15 + sin(time*0.04+pos.x*3.5));
+        //Shade the lines of symmetry black
+        // Variable width lines
+        t *= smoothstep(0.0, 0.01, abs(n/2.0-p.x)*lp)
+           * smoothstep(0.0, 0.01, abs(n/2.0-p.y)*lp)
+           * smoothstep(0.0, 0.01, abs(p.x)*2.0) 
+           * smoothstep(0.0, 0.01, abs(p.y)*2.0);
 
-    float t = mod(time*0.1, 2.0) + 440.0;
-    float x = mod(pos.x + t, so);
-    float y = mod(pos.y + t, so*2.0);
-    float d1 = mod( distance( vec2(x,y), vec2(so*0.45,so*1.05) ) + t*0.5, 0.05) * 3.0 + pos.x * 0.5;
-    float d2 = mod( distance( vec2(x,y), vec2(so*0.55,so*0.95) ) + t*0.5, 0.015) * 3.0;
+        // Fade out the high density areas, they just look like noise
+        r *= smoothstep(0.0, 0.2, lp);
 
-    if ((x-0.03 < sd) && (y-0.03 < sd*2.0))
-    if ((x < sd) && (y < sd*2.0))
-        col = vec3(0.2, 0.6, mix(d1, d2, 0.8) );
-    else
-        col = vec3(0.72, 0.25, pos.y * 0.06 + 0.3);
+        // Add to colour using hsv
+        col += hsv(1.0 - max(p.x, p.y) + t*2.0 + time, 2.0-lp+t, r);
 
+    }
 
-    float l = length(mod(t* 0.1 + col * distance(pos,vec2(pos.y,0.0)) ,0.02)*27.5); 
+    return (-cos(col/4.0)*0.5 + 0.5)*(t);
+}
 
-    if ((pos.y>0.1) && (pos.y < 0.9))
-        gl_FragColor = vec4( l,l,l, 1.0 );
-    else
-        gl_FragColor = vec4( 0.9,0.9,0.9, 1.0);
+void main() {
+    vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / iResolution.xy;
+    p.x *= iResolution.x / iResolution.y;
+    p *= 2.0;
+    const vec2 e = vec2(0.06545465634, -0.05346356485);
+    vec2 c = iGlobalTime*e;
+    //c = 8.0*iMouse.xy/iResolution.xy;
+    float d = 1.0;
+    vec3 col = vec3(0.0);
+    const float blursamples = 4.0;
+    float sbs = sqrt(blursamples);
+    float mbluramount = 1.0/iResolution.x/length(e)/blursamples*2.0;
+    float aabluramount = 1.0/iResolution.x/sbs*4.0;
+    for (float b = 0.0; b < blursamples; b++) {
+        col += formula(
+            p + vec2(mod(b, sbs)*aabluramount, b/sbs*aabluramount), 
+            c + e*mbluramount*b);
+    }
+    col /= blursamples;
+    gl_FragColor = vec4(col, 1.0);
 }
 </script>
 
@@ -138,7 +161,6 @@ window.addEventListener("load", function initEditors() {
     editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
 
     program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
-        resultsTop.clearError();
         recreateVariableList.call(null, event);
         env.reset();
 
@@ -149,6 +171,7 @@ window.addEventListener("load", function initEditors() {
     });
 
     env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
+        resultsTop.clearError();
         program.runShaders(env);
     });
 
@@ -184,12 +207,12 @@ window.addEventListener("load", function initEditors() {
     editor.refresh();
 
     // Change these defaults if you want to start somewhere else.
-    editor.activeShaderType = GLSL.Shader.Type.Vertex;
+    editor.activeShaderType = GLSL.Shader.Type.Fragment;
 
-    resultsTop.activeShaderType = GLSL.Shader.Type.Vertex;
+    resultsTop.activeShaderType = GLSL.Shader.Type.Fragment;
     resultsTop.activeOutputType = "codegen";
 
-    resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
+    resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
     resultsBottom.activeOutputType = "ast";
 });
 

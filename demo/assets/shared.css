@@ -247,3 +247,8 @@ table.variable-cells input[type="text"] {
 .valid-input {
     color: rgb(24, 47, 117);
 }
+
+.inverted {
+    filter: invert(0%);
+    -webkit-filter: invert(0%);
+}
