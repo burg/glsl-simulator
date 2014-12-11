@@ -9,7 +9,7 @@ var RenderView = function(program, env) {
     this._canvasElement = document.createElement("canvas");
     this.element.appendChild(this._canvasElement);
 
-    //this._canvasElement.addEventListener("mousemove", this._canvasMouseEvent.bind(this));
+    this._canvasElement.addEventListener("mousemove", this._canvasMouseEvent.bind(this));
     this._canvasElement.addEventListener("click", this._canvasMouseClicked.bind(this));
 
     this._updateButton = document.createElement("input");
@@ -57,7 +57,7 @@ RenderView.prototype = {
         console.assert(env instanceof GLSL.Environment);
         this.env = env.clone();
 
-        var resolution = this.env.get("iResolution") || this.env.get("resolution") || GLSL.Runtime.Vec3(50, 50, 1);
+        var resolution = this.env.get("iResolution") || this.env.get("resolution") || GLSL.Runtime.Vec3(200, 200, 1);
         var w = resolution.get('x');
         var h = resolution.get('y');
         if (!this._context || !(this.renderWidth == w && this.renderHeight == h)) {
