@@ -130,9 +130,14 @@ window.addEventListener("load", function initViews() {
     var leftSide = document.getElementById("left-side");
     var rightSide = document.getElementById("right-side");
 
-    var variableList = new VariableListView(null, suggestedVariableValueCallback);
-	var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
     var renderer = new RenderView(program, env);
+
+    // Prepopulate with useful inputs for the demo.
+    previousInputs["iResolution_vec3"] = GLSL.Runtime.Vec3(renderer.renderWidth, renderer.renderHeight, 1);
+    previousInputs["iGlobalTime_float"] = 22.1;
+
+    var variableList = new VariableListView(null, suggestedVariableValueCallback);
+    var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
     var resultsTop = new DebugView(program, env, "top");
     var resultsBottom = new DebugView(program, env, "bottom");
 

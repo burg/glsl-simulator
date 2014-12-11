@@ -2,7 +2,7 @@ var RenderView = function(program, env) {
     this.updateProgram(program);
     this.updateEnvironment(env);
 
-    var resolution = this.env.get("iResolution") || this.env.get("resolution") || GLSL.Runtime.Vec3(50, 50, 1);
+    var resolution = this.env.get("iResolution") || this.env.get("resolution") || GLSL.Runtime.Vec3(100, 100, 1);
     this.renderWidth = resolution.get('x');
     this.renderHeight = resolution.get('y');
 
