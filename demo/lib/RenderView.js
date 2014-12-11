@@ -104,8 +104,6 @@ RenderView.prototype = {
                     this._buffer.data[(y * this.renderWidth + x) * 4 + 2] | 0,
                     (this._buffer.data[(y * this.renderWidth + x) * 4 + 3] / 255) | 0];
 
-        console.log(rgba);
-
         this._pixelColorElement.style.backgroundColor = "rgba(" + rgba.join(", ") + ")";
         this._pixelCoordElement.textContent = "gl_FragCoord = (" + [x, y, 1, 1].join(", ") + ")";
     },
