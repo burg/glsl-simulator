@@ -258,3 +258,19 @@ table.variable-cells input[type="text"] {
     filter: invert(0%);
     -webkit-filter: invert(0%);
 }
+
+.render-view {
+    padding: 20px;
+}
+
+.picker-label {
+    font-size: 16px;
+    font-family: Myriad Pro, Helvetica, sans-serif;
+}
+
+.pixel-color {
+    width: 25px;
+    height: 25px;
+
+    border: 1px solid black;
+}
