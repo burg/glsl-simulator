@@ -11,6 +11,7 @@
 <script src="lib/DebugView.js"></script>
 <script src="lib/EditorView.js"></script>
 <script src="lib/ImageView.js"></script>
+<script src="lib/RenderView.js"></script>
 <script src="lib/VariableView.js"></script>
 </head>
 <body>
@@ -119,7 +120,7 @@ function getSuggestedVariableValue(savedInputs, variable) {
     return null;
 }
 
-window.addEventListener("load", function initEditors() {
+window.addEventListener("load", function initViews() {
     program = new GLSL.Program;
     env = new GLSL.Environment;
 
@@ -131,13 +132,13 @@ window.addEventListener("load", function initEditors() {
 
     var variableList = new VariableListView(null, suggestedVariableValueCallback);
 	var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
-    var editor = new EditorView(program);
+    var renderer = new RenderView(program, env);
     var resultsTop = new DebugView(program, env, "top");
     var resultsBottom = new DebugView(program, env, "bottom");
 
     leftSide.appendChild(image.element);
     leftSide.appendChild(variableList.element);
-    leftSide.appendChild(editor.element);
+    leftSide.appendChild(renderer.element);
     rightSide.appendChild(resultsTop.element);
     rightSide.appendChild(resultsBottom.element);
 
@@ -154,14 +155,12 @@ window.addEventListener("load", function initEditors() {
 
     function recreateVariableList() {
         variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-        var newList = new VariableListView(program.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
+        var newList = new VariableListView(program.fragmentShader, suggestedVariableValueCallback);
         newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
 
         leftSide.replaceChild(newList.element, variableList.element);
         variableList = newList;
     }
-
-    editor.addEventListener(EditorView.Event.ShaderTypeChanged, recreateVariableList);
 
     program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
         recreateVariableList.call(null, event);
@@ -171,11 +170,14 @@ window.addEventListener("load", function initEditors() {
             env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
             env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
         env.exitEditScope();
+
+        renderer.updateProgram(program);
+        renderer.updateEnvironment(env);
     });
 
     env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
         resultsTop.clearError();
-        program.runShaders(env);
+        renderer.updateEnvironment(env);
     });
 
     GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, function runWithNewExecutable() {
@@ -203,20 +205,17 @@ window.addEventListener("load", function initEditors() {
         resultsTop.showErrorMessage(errorType, event.data.message);
     });
 
-    window.addEventListener("resize", editor.autosizeHeight.bind(editor));
+    //window.addEventListener("resize", editor.autosizeHeight.bind(editor));
 
     program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
     program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
-    editor.refresh();
 
     // Change these defaults if you want to start somewhere else.
-    editor.activeShaderType = GLSL.Shader.Type.Fragment;
-
     resultsTop.activeShaderType = GLSL.Shader.Type.Fragment;
-    resultsTop.activeOutputType = "codegen";
+    resultsTop.activeOutputType = "pretty";
 
     resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
-    resultsBottom.activeOutputType = "ast";
+    resultsBottom.activeOutputType = "codegen";
 });
 
 </script>

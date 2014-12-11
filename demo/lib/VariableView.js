@@ -72,7 +72,7 @@ var VariableView = function(variable, suggestedValue) {
         this.insertValue(suggestedValue);
 
     if (variable.usage === "in")
-        cellTable.addEventListener("input", this._fieldInputChanged.bind(this));
+        cellTable.addEventListener("change", this._fieldInputChanged.bind(this));
 }
 
 VariableView.Event = {
