@@ -10,19 +10,20 @@
 <script src="external/mode/glsl.js"></script>
 <script src="lib/DebugView.js"></script>
 <script src="lib/EditorView.js"></script>
+<script src="lib/ImageView.js"></script>
 <script src="lib/VariableView.js"></script>
 </head>
 <body>
-    <form>
-<div id="demo-container">
-<div id="left-side">
+ <form>
+  <div id="demo-container">
+   <div id="left-side">
     <div id="demo-header">
     GLSL Simulator Demo: Debugger
     </div>
-</div>
-<div id="right-side"></div>
-</form>
-</div>
+   </div>
+   <div id="right-side"></div>
+  </div>
+ </form>
 
 <script type="x-glsl-vshader" id="sample-vertex-shader">
 attribute vec2 position;
@@ -129,10 +130,12 @@ window.addEventListener("load", function initEditors() {
     var rightSide = document.getElementById("right-side");
 
     var variableList = new VariableListView(null, suggestedVariableValueCallback);
+	var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
     var editor = new EditorView(program);
     var resultsTop = new DebugView(program, env, "top");
     var resultsBottom = new DebugView(program, env, "bottom");
 
+    leftSide.appendChild(image.element);
     leftSide.appendChild(variableList.element);
     leftSide.appendChild(editor.element);
     rightSide.appendChild(resultsTop.element);

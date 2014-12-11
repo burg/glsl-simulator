@@ -118,6 +118,12 @@
     pointer-events: none;
 }
 
+.image-container {
+    border: solid 3px #c99;
+    height: 160px;
+    overflow-y: scroll;
+}
+
 .variable-list {
     border: solid 3px #99c;
     height: 200px;
