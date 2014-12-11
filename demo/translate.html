@@ -105,7 +105,7 @@ window.addEventListener("load", function initEditors() {
     var leftSide = document.getElementById("left-side");
     var rightSide = document.getElementById("right-side");
 
-    var variableList = new VariableListView(null, suggestedVariableValueCallback);
+    var variableList = new VariableListView([], suggestedVariableValueCallback);
     var editor = new EditorView(program);
     var resultsTop = new DebugView(program, env, "top");
     var resultsBottom = new DebugView(program, env, "bottom");
@@ -128,7 +128,7 @@ window.addEventListener("load", function initEditors() {
 
     function recreateVariableList() {
         variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-        var newList = new VariableListView(program.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
+        var newList = VariableListView.fromShader(program.shaderWithType(editor.activeShaderType), suggestedVariableValueCallback);
         newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
 
         leftSide.replaceChild(newList.element, variableList.element);

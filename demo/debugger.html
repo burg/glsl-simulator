@@ -136,7 +136,7 @@ window.addEventListener("load", function initViews() {
     previousInputs["iResolution_vec3"] = GLSL.Runtime.Vec3(renderer.renderWidth, renderer.renderHeight, 1);
     previousInputs["iGlobalTime_float"] = 22.1;
 
-    var variableList = new VariableListView(null, suggestedVariableValueCallback);
+    var variableList = new VariableListView([], suggestedVariableValueCallback);
     var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
     var resultsTop = new DebugView(program, env, "top");
     var resultsBottom = new DebugView(program, env, "bottom");
@@ -160,7 +160,7 @@ window.addEventListener("load", function initViews() {
 
     function recreateVariableList() {
         variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-        var newList = new VariableListView(program.fragmentShader, suggestedVariableValueCallback);
+        var newList = VariableListView.fromShader(program.fragmentShader, suggestedVariableValueCallback);
         newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
 
         leftSide.replaceChild(newList.element, variableList.element);

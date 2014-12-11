@@ -152,15 +152,13 @@ VariableView.prototype = {
     }
 };
 
-var VariableListView = function(shader, suggestedVariableValueCallback) {
-    this.shader = shader;
-
+var VariableListView = function(variables, suggestedVariableValueCallback) {
     this._variableMap = new Map;
 
     this.element = document.createElement("div");
     this.element.classList.add("variable-list");
 
-    if (!this.shader)
+    if (!variables.length)
         return;
 
     function createVariable(variable) {
@@ -172,12 +170,20 @@ var VariableListView = function(shader, suggestedVariableValueCallback) {
             view.addEventListener(VariableView.Event.InputChanged, this._inputChanged, this);
     }
 
-    this.shader.uniforms.map(createVariable.bind(this));
-    if (this.shader.type === GLSL.Shader.Type.Vertex)
-        this.shader.attributes.map(createVariable.bind(this));
-
-    this.shader.varyings.map(createVariable.bind(this));
+    variables.map(createVariable.bind(this));
 };
+
+VariableListView.fromShader = function(shader, suggestedVariableValueCallback) {
+    var variables = [];
+    if (shader) {
+        variables = variables.concat(shader.uniforms);
+        if (shader.type === GLSL.Shader.Type.Vertex)
+            variables = variables.concat(shader.attributes);
+
+        variables = variables.concat(shader.varyings);
+    }
+    return new VariableListView(variables, suggestedVariableValueCallback);
+}
 
 VariableListView.Event = {
     VariableValueChanged: "variable-list-view-variable-value-changed"
