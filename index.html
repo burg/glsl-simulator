@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="Glsl-simulator : A simulator for OpenGL ES 1.0 Shader Language written in JavaScript.">
+    <meta name="description" content="glsl-simulator : A simulator for OpenGL ES 1.0 Shader Language written in JavaScript.">
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>Glsl-simulator</title>
+    <title>glsl-simulator</title>
   </head>
 
   <body>
@@ -18,7 +18,7 @@
         <header class="inner">
           <a id="forkme_banner" href="https://github.com/burg/glsl-simulator">View on GitHub</a>
 
-          <h1 id="project_title">Glsl-simulator</h1>
+          <h1 id="project_title">glsl-simulator</h1>
           <h2 id="project_tagline">A simulator for OpenGL ES 1.0 Shader Language written in JavaScript.</h2>
 
             <section id="downloads">
@@ -34,7 +34,7 @@
         <h3>
 <a id="id-problem" class="anchor" href="#id-problem" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation and Problem</h3>
 
-<p>The introduction of WebGL finally lets web developers create and share shaders, textures,
+<p>The introduction of <a href="https://www.khronos.org/webgl/wiki/Main_Page">WebGL</a> finally lets web developers create and share shaders, textures,
 models, and games in a portable way on the web. However, tools for inspecting,
 understanding, and debugging WebGL content lag far behind the capabilities of other web
 content. For web content such as JavaScript, major browsers have built-in developer tools
@@ -53,9 +53,6 @@ variable’s runtime values at any program point. She should be able to step thr
 to understand control flow. Lastly, it should be simple for her to visualize intermediate runtime
 states for specific pixels, all pixels within a frames, or over time.</p>
 
-<h3>
-<a id="id-approach" class="anchor" href="#id-approach" aria-hidden="true"><span class="octicon octicon-link"></span></a>Approach</h3>
-
 <p>We propose to design and implement a GLSL shader simulator as the key technology to
 enable these debugging tools for WebGL. Since shader programs run on the GPU, there is no
 way to pause execution or inspect runtime values in the conventional sense. To obtain this
@@ -66,7 +63,12 @@ necessary inputs. These inputs (uniforms, varying, gl_Position, textures, etc.) 
 instrument in modern WebGL implementations. Since shaders are short and must run quickly
 on hardware, this runtime data can be produced with low latency during debugging sessions.</p>
 
-<p>TODO</p>
+<h3>
+<a id="id-approach" class="anchor" href="#id-approach" aria-hidden="true"><span class="octicon octicon-link"></span></a>Approach</h3>
+
+<p>
+To implement a GLSL simulator in JavaScript, we implemented a source-to-source translator that converts a GLSL program to a similar JavaScript program. For our initial prototype, the translation between GLSL and JavaScript is intentionally simple so that we are able to build a fully-functional compiler and runtime during the compressed time scale of our course project.
+</p>
 
 <h3>
 <a id="id-evaluation" class="anchor" href="#id-evaluation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evaluation</h3>
@@ -86,33 +88,19 @@ For computing each pixel, </p>
 <h3>
 <a id="id-related" class="anchor" href="#id-related" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Work</h3>
 
-<p>The most common debugging method is “printf­style” debugging, where the state to
-inspect is encoded as a color and assigned to gl_FragColor, then later visualized. This
-has serious limitations, such as supporting only a vec3 of debug output per shader.
-However, it can run on the GPU and is portable.</p>
+<p>The most common debugging method is “printf­-style” debugging, where the state to inspect is encoded as a color and assigned to <tt>gl_FragColor<tt>, then later visualized. This has serious limitations, such as supporting only a <tt>vec3</tt> of debug output per shader. However, it can run on the GPU and is portable.</p>
 
-<p>Mesa is the original software­based graphics stack (C/C++). It has a full parser,
-optimizer, and software interpreter for GLSL and ARB assembly code.</p>
+<p><a href="http://www.mesa3d.org/">Mesa</a> is the original software ­based graphics stack (C/C++). It has a full parser, optimizer, and software interpreter for GLSL and ARB assembly code.</p>
 
-<p>Apple OpenGL Shader Builder, FX Composer, RenderMonkey, and Firefox’s shader
-editor allow uniforms, textures, etc to be edited in real­time, but can’t inspect internal
-shader state.</p>
+<p><a href="https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/OpenGLShaderBuilderUserGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40006476-CH1-DontLinkElementID_5">Apple OpenGL Shader Builder</a>, <a href="https://developer.nvidia.com/fx-composer">FX Composer</a>, <a href="http://developer.amd.com/tools-and-sdks/archive/legacy-cpu-gpu-tools/rendermonkey-toolsuite/">RenderMonkey</a>, and <a href="https://developer.mozilla.org/en-US/docs/Tools/Shader_Editor">Firefox’s shader editor</a> allow uniforms, textures, etc to be edited in real­time, but can’t inspect internal shader state.</p>
 
 <p>The paper
 <a href="http://www.cdm.depaul.edu/SoC/research/Documents/TechnicalReports/2006/TR06­015.pdf">
-“Step­through debugging of GLSL shaders"</a> proposes to extend printf debugging for two purposes: to simulate stepping
-through a shader for the full screen, and stepping through control flow for a specific
-pixel. They use rewriting techniques to save intermediate values, assign to
-gl_FragColor, then return early.</p>
+“Step-­through debugging of GLSL shaders"</a> proposes to extend printf debugging for two purposes: to simulate stepping through a shader for the full screen, and stepping through control flow for a specific pixel. They use rewriting techniques to save intermediate values, assign to <tt>gl_FragColor</tt>/<tt>gl_Position</tt>, then return early.</p>
 
-<p>NVIDIA nSight and AMD ShaderAnalyzer offer a full stepping debugger for shaders,
-implemented using proprietary hooks in their drivers to get data.</p>
+<p><a href="https://developer.nvidia.com/nvidia-nsight-visual-studio-edition">NVIDIA nSight</a> and <a href="http://developer.amd.com/tools-and-sdks/graphics-development/gpu-shaderanalyzer/">AMD ShaderAnalyzer</a> offer a full stepping debugger for shaders, implemented using proprietary hooks in their drivers to get data.</p>
 
-<p><a href="http://glsl­debugger.github.i/o">glslDevil</a> uses a similar “printf­like” instrumentation
-technique to dump intermediate shader runtime values by running the modified shader
-on the GPU. It cannot do stepping, however. (slides:
-http://www.graphicshardware.org/previous/www_2007/presentations/strengert­opengld
-ebugger­gh07.pdf)</p>
+<p><a href="http://glsl­debugger.github.io/">glslDevil</a> (<a href="http://www.graphicshardware.org/previous/www_2007/presentations/strengert­opengldebugger­gh07.pdf">slides</a>) uses a similar “printf­-like” instrumentation technique to dump intermediate shader runtime values by running the modified shader on the GPU. It cannot do stepping, however.</p>
 
 <h3>
 <a id="id-appendix" class="anchor" href="#id-appendix" aria-hidden="true"><span class="octicon octicon-link"></span></a>Appendix</h3>
