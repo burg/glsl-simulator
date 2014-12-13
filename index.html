@@ -94,14 +94,13 @@ We aim to simulate the execution of vertex and fragment shaders (and their inter
 
 <h4>Intended Use Cases</h4>
 <p>
-TODO: talk about debugging via stepping. Likely scenario, based on speaking with graphics devs: my screen is completely black, why? Smaller rendering differences (i.e. antialiasing, rasterization) may be useful to point out, but developers are probably used to it anyway and don't expect perfect results. Graphics hardware does different things already.
+We want to support understanding unfamiliar shader programs and debugging catastrophic shader failures (i.e., all pixels rendered black). Both use cases require the ability to inspect arbitrary runtime state at any program point. Less important is the goal of exact simulation: smaller rendering differences (i.e. antialiasing, rasterization, blending) may be useful to point out, but graphics programmers don't expect pixel-perfect results (different graphics hardware produces different results already!). The main value proposition of a simulator is that it can provide insight into control flow and intermediate runtime states.
 </p>
 
 <h4>Embedding a Simulator</h4>
 <p>
-TODO: talk about what data the emebedder wants, and how to specify it.
+We assume that any developer tool which embeds the simulator will want access to semantic information such as types of expressions, line and column numbers, and so on. Embedders should be able reconstruct shader control flow, and insert logging code before and after specific statements or expressions. Unlike traditional debuggers, we do not plan to support pausing the simulator's execution at arbitrary statements; instead, the embedder will be able to present a "paused" line in the user interface, while repeatedly re-simulating the shader with different debugger hooks to obtain the necessary data. For example, if a user steps from one statement to the next statement, the embedder will move its debugger hooks for local variable values to be triggered on the next line.
 </p>
-
 
 <h3>
 <a id="id-approach" class="anchor" href="#id-approach" aria-hidden="true"><span class="octicon octicon-link"></span></a>Approach</h3>
@@ -123,7 +122,7 @@ The simulator performs very basic semantic analysis to disambiguate user-defined
 
 <h4>Code Generation</h4>
 <p>
-Given an abstract syntax tree (AST) of the GLSL code, the simulator generates a JavaScript equivalent by walking over the tree and creating a big string. Since the simulator does not perform any sophisticated restructuring or optimization, this code generation pass resembles a pretty-printing routine.
+Given an abstract syntax tree (AST) of the GLSL code, the simulator generates a JavaScript equivalent by walking over the tree and creating a big string. Since the simulator does not perform any sophisticated restructuring or optimization, this code generation pass resembles a pretty-printing routine. Special flags on the shader can control some code generator behaviors, such as emitting extra debug information or logging hooks.
 </p>
 <p>
 The interesting parts of the code generator involve special treatment of shader variables (uniforms, varyings, attributes) versus local variables; user-defined versus built-in functions; and translating GLSL selectors such as arr[0].zyx into runtime library calls.
@@ -137,7 +136,9 @@ TODO: implement builtins (builtins.js), operators (ops.js), and data types (vec.
 
 <h4>Running the Simulator</h4>
 <p>
-TODO: Program = 2 Shaders. Run = Program + Environment. Briefly explain input/output in the two demo pages.
+The simulator has a few important objects: a Shader (vertex or fragment), a Program (consisting of one vertex and one fragment shader), and an Environment. The environment serves as a container for shader inputs (attributes, uniforms, varyings) and outputs (varyings, builtin variables). The program is the main entry point for execution. It supports single (vertex, fragment) shader execution and mass fragment shader execution over an image buffer.
+
+TODO: Briefly explain input/output in the two demo pages.
 </p>
 
 <h3>
