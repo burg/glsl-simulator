@@ -113,17 +113,21 @@ Generated JavaScript programs rely on <tt>runtime.js</tt>, a collection of GLSL 
 
 <h4>Lexing and Parsing</h4>
 <p>
-TODO: We lex/parse in JavaScript. We tried using handwritten lexer/parser, but they sucked. Instead, use GLSLUnit's PEG parser grammar.
+The simulator uses a GLSL lexer and parser implemented in JavaScript. Initially, we tried using an (external) handwritten <a href="https://github.com/stackgl/glsl-tokenizer">tokenizer</a> and <a href="https://github.com/stackgl/glsl-parser">parser</a>, but they were hard to get running and thus unsuitable for rapid prototyping. Instead, we used a <a href="https://code.google.com/p/glsl-unit/source/browse/ast/glsl.pegjs">PEG parser grammar</a> from Google's <a href="https://code.google.com/p/glsl-unit/">glsl-unit testing framework</a>. When fed to a parser generator like <a href="http://pegjs.majda.cz/">pegjs</a>, this grammar produces a GLSL parser in JavaScript. (Parsing expression grammars, the particular grammar class that we use, combines lexical and syntactic analysis into one pass, so there is only one piece to use.)
 </p>
 
 <h4>Semantic Analysis</h4>
 <p>
-The simulator performs very basic semantic analysis to disambiguate user-defined and built-in function calls, and extract input/output variables for displaying in the demo user interface.
+The simulator performs very basic semantic analysis to disambiguate user-defined and built-in function calls, and extract input/output variables for displaying in the demo user interface. In future work, typechecking would be performed at this point.
 </p>
 
 <h4>Code Generation</h4>
 <p>
-TODO: Walk over AST, emit some code.
+Given an abstract syntax tree (AST) of the GLSL code, the simulator generates a JavaScript equivalent by walking over the tree and creating a big string. Since the simulator does not perform any sophisticated restructuring or optimization, this code generation pass resembles a pretty-printing routine.
+</p>
+<p>
+The interesting parts of the code generator involve special treatment of shader variables (uniforms, varyings, attributes) versus local variables; user-defined versus built-in functions; and translating GLSL selectors such as arr[0].zyx into runtime library calls.
+For each builtin function and operator, we emit a call such as "RT.divide(a, b)" rather than using builtin JavaScript operators. This is necessary because without typechecking, the code generator does not know the types of 'a' or 'b'. Instead, the implementation of "RT.divide" checks the type of its arguments at runtime and decide whether to perform a scalar, vector, or matrix divide operation.
 </p>
 
 <h4>Runtime Library</h4>
@@ -165,8 +169,8 @@ TODO: talk about intentionally undefined behavior in the GLSL specification: tex
 <h3>
 <a id="id-discussion" class="anchor" href="#id-discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion and Future Work</h3>
 
-While too slow to be useful in realistic scenarios, our initial prototype answered several design questions.
-Our most important finding is that the GLSL language itself is relatively small and its semantics map cleanly to JavaScript code. While our initial prototype is too slow for realistic use cases, we have not found any serious roadblocks that would make it difficult to improve performance by using well-understood compiler and runtime optimizations.
+While too slow to be useful in realistic scenarios, the initial simulator prototype answered several design questions.
+The most important finding is that the GLSL language itself is relatively small and its semantics map cleanly to JavaScript code. While the initial prototype is too slow for realistic use cases, we have not found any serious roadblocks that would make it difficult to improve performance by using well-understood compiler and runtime optimizations.
 
 <h4>Using semantic information during generation</h4>
 <p>
@@ -175,7 +179,7 @@ The simulator prototype does not perform typechecking or other semantic analysis
 
 <h4>Generating optimizable code</h4>
 <p>
-Modern JavaScript runtimes employ extensive use of adaptive optimization techniques such as inline caches, JIT compilation, and separate compilation tiers. Our naive translation blocks or reduces the effectiveness of these optimizations by using many function calls, conditional branches, and using weakly typed variables and data types. By using semantic information and simplification techniques, we can eliminate these sources of performance problems. For example, we can manually inline trivial builtin functions such as min, max, smoothstep, and vector distance to avoid function call overhead. Instead of using JavaScript's dynamically-sized and -typed Array data type, we can use <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays">Typed Arrays</a> to enforce data types.
+Modern JavaScript runtimes employ extensive use of adaptive optimization techniques such as inline caches, JIT compilation, and separate compilation tiers. The prototype's naive translation reduces the effectiveness of these optimizations by using many function calls, conditional branches, and using weakly-typed variables and data types. By using semantic information and simplification techniques, a more sophisticated code generator could eliminate these sources of performance problems. For example, the generator can manually inline trivial builtin functions such as min(), max(), smoothstep(), and vector distance() to avoid function call overhead. Instead of using JavaScript's dynamically-sized and dynamically-typed Array data type, the simulator can use <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays">Typed Arrays</a> as backing stores for specific data types such as Float32, Uint8, and user-defined structs. (Typed arrays are already used by WebGL for performance reasons to store per-vertex attributes and other bulk structured data.)
 </p>
 
 <h4>Testing simulator results</h4>
