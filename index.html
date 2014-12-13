@@ -162,10 +162,10 @@ In summary, we have built all the built-in functions and types in order to make 
 
 <h5>Running the Simulator</h5>
 <p>
-<a href="TBD">The simulator</a> has a few important objects: a Shader (vertex or fragment), a Program (consisting of one vertex and one fragment shader), and an Environment. The environment serves as a container for shader inputs (attributes, uniforms, varyings) and outputs (varyings, builtin variables). The program is the main entry point for execution. It supports single (vertex, fragment) shader execution and mass fragment shader execution over an image buffer.
+The simulator has a few important objects: a Shader (vertex or fragment), a Program (consisting of one vertex and one fragment shader), and an Environment. The environment serves as a container for shader inputs (attributes, uniforms, varyings) and outputs (varyings, builtin variables). The program is the main entry point for execution. It supports single (vertex, fragment) shader execution and mass fragment shader execution over an image buffer.
 </p>
 <p>
-We briefly describe the inputs and the outputs on our demo page.
+We briefly describe the inputs and the outputs on <a href="demo/debugger.html">our demo page</a>.
 <em>iGlobalTime</em> is the current timestamp relative to the start time,
 <em>iMouse</em> is the relative position(coordinates) of the mouse,
 and <em>iResolution</em> decides the size of the outputs.
@@ -179,28 +179,84 @@ Variables that start with <em>gl_</em> are builtin inputs/outputs of GLSL shader
 <h3>
 <a id="id-evaluation" class="anchor" href="#id-evaluation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evaluation</h3>
 
+We have evaluated our GLSL simulator both quantitatively and qualitively.
+A user study would be ideal, but the implementations would require us lots of time.
+We have spent so much time on implementations, so we consider user studies as future work.
+
 <h5>What can the simulator simulate?</h5>
 <p>
+Our simulator can simulate any single frame of a single shader, which gives developers more control over potential factors that can cause bugs.
+To make sure that our simulator works for reasonably complex shaders, we pull a few shaders off from <a href="https://www.shadertoy.com/">shadertoy</a>, a web site that provides sample fancy shaders. We see that our simulator produces similar results to results on the web site.
+We will discuss the difference between our simulator's results and expected results and why later.
+</p>
+<!--p>
 TODO: talk about only single shader execution. Some complex fragment shaders work. Precision specifiers and other minor things are ignored. Preprocessor doesn't really work either.
-</p>
-
-<h5>How fast is generated code?</h5>
-<p>
-TODO: talk about speed. How long per frame? Use chrome's flame chart profiler to get per-run timing data.
-</p>
+</p-->
 
 <h5>Can we get intermediate states?</h5>
 <p>
-TODO: talk about stepping through generated code in JavaScript debugger. However, no general-purpose instrumentation or logging API yet. (see future work)
+Stepping through and watching variable changes have been implemented in many programming languages, and have been verified as one of the most effective ways for debugging.
+However, they are not possible in the GLSL shader language running inside browsers.
+We provide a <a href="/Users/wangxiao/courses/cse557/glsl-page/demo/translate.html">demo page</a> that shows how our simulator allows stepping through generated JavaScript by checking the "Pause Inside Shader" box.
+This allows stepping through the generated JavaScript shader code line by line and watching how local variables and states change over time.
 </p>
+<p>
+Currently, we step through the JavaScript code, but it is not hard to map a line of JavaScript code back to the original GLSL shader code which is considered as future work.
+</p>
+<p>
+Currently, we rely on the browser's builtin stepping through features (e.g. available at least in Chrome and Safari).
+In the future, we plan to implement a general purpose instrumentation or logging APIs so as to enable debugging on older versions of browsers that don't provide stepping through functionalities.
+</p>
+<!--p>
+TODO: talk about stepping through generated code in JavaScript debugger. However, no general-purpose instrumentation or logging API yet. (see future work)
+</p-->
 
 <h5>Are the computed results correct?</h5>
 <p>
+Here, we discuss how our results can be different from the original GLSL shader's and why.
+</p>
+<p>
+A first reason that our results can be different is the difference in precision levels between GLSL shader language and JavaScript.
+GLSL shader language provides different precision levels for each variable.
+For simplicity and performance purposes, we don't implement these precision levels in JavaScript.
+We reply on JavaScript to provide precision.
+However, JavaScript has known rounding issues.
+For example, 0.1 * 0.2 will produce 0.020000000000000004 instead of 0.02.
+There are certain ways to resolve the issues (e.g., using float32/float64, converting to and back from integers, etc.) which however will add more CPU cycles.
+In addition, JavaScript sometimes coerces types in weird ways.
+For example, a = +a or a *= 1 will cast a to integer, which is different from what the GLSL shader language would produce.
+</p>
+<p>
+Another reason is that there are intentionally undefined behaviors in the GLSL shader language specification, for example, texture sampler results, antialiasing, and rasterization.
+For this reason, there is no way to make our results and GLSL shader language's results absolutely the same since GLSL shader language's results can be slight different for different runs.
+</p>
+<!--p>
 TODO: talk about float32 vs float64 precision and problems with JS coercion.
 </p>
 <p>
 TODO: talk about intentionally undefined behavior in the GLSL specification: texture sampler results, antialiasing, rasterization.
+</p-->
+
+<h5>How fast is generated code?</h5>
+<p>
+We evaluate the elapsed time and CPU time of generating the sample shader.
 </p>
+<p>
+We gauge the elapsed time by running our demo sampler (both vertex and fragment) on a Mac OS X machine with 2.7GHz processor and 16GB memory using Chrome browser Version 39.0.2171.71.
+The elapsed times are 2.1s (10K pixels), 4.1s (20K pixels), and 8.3s (40K pixels).
+The elapsed times are almost linear to the amount of pixels, suggesting that the elapsed time spent on code generation is minimal compared to the amount of elapsed time spent on runtime.
+</p>
+<p>
+We further gauge the breakdowns of CPU time spent on all the functions.
+We use Chrome's builtin CPU profiler to obtain this results.
+The sample shader spends 19.36% CPU time on constructing vectors, meaning that constructing vectors are the slowest part of our simulator.
+This is because the vector constructor implements typechecking and overloading, which can be done alternatively in the translation phase.
+In comparison, the sample shader spends 4.24% CPU time on clamp(), 3.75% on multiply(), and 3.65% on abs().
+While these numbers and the functions can be different depending on the shaders, their relative values suggest how slow one function is compared to each other.
+</p>
+<!--p>
+TODO: talk about speed. How long per frame? Use chrome's flame chart profiler to get per-run timing data.
+</p-->
 
 <h3>
 <a id="id-discussion" class="anchor" href="#id-discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion and Future Work</h3>
@@ -221,6 +277,16 @@ Modern JavaScript runtimes employ extensive use of adaptive optimization techniq
 <h5>Testing simulator results</h5>
 <p>
 Our prototype only has a few unit tests for the runtime.js library. To improve performance and track feature completeness, glsl-simulator should have compilation/runtime benchmarks as well as a regression test suite. Correctness of semantic analysis, builtin operators and functions can by tested more systematically by using glsl-simulator as a backend option in the <a href="https://github.com/KhronosGroup/WebGL/tree/master/conformance-suites/1.0.2/conformance/glsl">WebGL conformance suite</a>'s test harness.
+</p>
+
+<h3>
+<a id="id-conclusion" class="anchor" href="#id-conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h3>
+
+<p>
+In this project, we have designed and implemented a GLSL simulator that translates GLSL shader language into JavaScript so as to enable stepping through debugging.
+We have demonstrated that our GLSL simulator enables stepping through and produces reasonably similar results as GLSL shader language's.
+Our simulator is expensive (producing 40K pixels took 8 seconds) due to repeated typechecking in runtime for all pixels.
+Our main future work is to make our simulator more efficient by typechecking at translation phase, and by doing compiler friendly optimizations.
 </p>
 
 <h3>
