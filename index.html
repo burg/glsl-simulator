@@ -58,32 +58,10 @@ enable these debugging tools for WebGL. Since shader programs run on the GPU, th
 way to pause execution or inspect runtime values in the conventional sense. To obtain this
 information, we can instead simulate the shader’s execution with a specific set of inputs
 (exploiting the determinism of shader programs). Runtime data that’s needed by debugging
-affordances can then be regenerated on­demand by running the shader simulator with the
+affordances can then be regenerated on­-demand by running the shader simulator with the
 necessary inputs. These inputs (uniforms, varying, gl_Position, textures, etc.) are easy to
 instrument in modern WebGL implementations. Since shaders are short and must run quickly
 on hardware, this runtime data can be produced with low latency during debugging sessions.</p>
-
-<h3>
-<a id="id-approach" class="anchor" href="#id-approach" aria-hidden="true"><span class="octicon octicon-link"></span></a>Approach</h3>
-
-<p>
-To implement a GLSL simulator in JavaScript, we implemented a source-to-source translator that converts a GLSL program to a similar JavaScript program. For our initial prototype, the translation between GLSL and JavaScript is intentionally simple so that we are able to build a fully-functional compiler and runtime during the compressed time scale of our course project.
-</p>
-
-<h3>
-<a id="id-evaluation" class="anchor" href="#id-evaluation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evaluation</h3>
-
-<p>TODO</p>
-
-<h3>
-<a id="id-discussion" class="anchor" href="#id-discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussions and Future Work</h3>
-
-We have learned the following lessons from this project.
-
-<p><strong>Performance.</strong> Running simulated glsl code in JavaScript is really slow.
-For computing each pixel, </p>
-
-<p><strong>Precision.</strong></p>
 
 <h3>
 <a id="id-related" class="anchor" href="#id-related" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Work</h3>
@@ -103,6 +81,108 @@ For computing each pixel, </p>
 <p><a href="http://glsl­debugger.github.io/">glslDevil</a> (<a href="http://www.graphicshardware.org/previous/www_2007/presentations/strengert­opengldebugger­gh07.pdf">slides</a>) uses a similar “printf­-like” instrumentation technique to dump intermediate shader runtime values by running the modified shader on the GPU. It cannot do stepping, however.</p>
 
 <h3>
+
+<h3>
+<a id="id-discussion" class="anchor" href="#id-discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Design Considerations</h3>
+
+<p>We envision glsl-simulator as one piece of a larger debugging story provided by other tools. To this end, we enumerate some of the relevant design constraints and considerations.</p>
+
+<h4>Simulator Extent</h4>
+<p>
+We aim to simulate the execution of vertex and fragment shaders (and their interconnection via rasterization), but not other <a href="http://en.wikibooks.org/wiki/GLSL_Programming/OpenGL_ES_2.0_Pipeline">parts of the pipeline</a> such as GL calls to manipulate texture or render state, nor <a href="http://en.wikibooks.org/wiki/GLSL_Programming/Per-Fragment_Operations">per-fragment operations</a> that require access to the framebuffer and GL state machine. Our rationale is that GL calls are already traced and replayed by debugging tools, while GLSL execution is not. Per-fragment operations such as alpha blending, culling, scissor test, etc can be supported by debuggers by appending post-processing shaders that simulate these hardware-implemented operations. Lastly, it is feasible to simulate GLSL programs in isolation: the shader program's inputs (textures, uniforms, attributes, etc) can be easily taken from captured GL call traces and rendered frames.
+</p>
+
+<h4>Intended Use Cases</h4>
+<p>
+TODO: talk about debugging via stepping. Likely scenario, based on speaking with graphics devs: my screen is completely black, why? Smaller rendering differences (i.e. antialiasing, rasterization) may be useful to point out, but developers are probably used to it anyway and don't expect perfect results. Graphics hardware does different things already.
+</p>
+
+<h4>Embedding a Simulator</h4>
+<p>
+TODO: talk about what data the emebedder wants, and how to specify it.
+</p>
+
+
+<h3>
+<a id="id-approach" class="anchor" href="#id-approach" aria-hidden="true"><span class="octicon octicon-link"></span></a>Approach</h3>
+
+<p>
+To implement a GLSL simulator in JavaScript, we implemented a source-to-source translator that converts a GLSL program to a similar JavaScript program. For our initial prototype, the translation between GLSL and JavaScript is intentionally simple so that we are able to build a fully-functional compiler and runtime during the compressed time scale of our course project.
+Generated JavaScript programs rely on <tt>runtime.js</tt>, a collection of GLSL builtin function and data types reimplemented in JavaScript.
+</p>
+
+<h4>Lexing and Parsing</h4>
+<p>
+TODO: We lex/parse in JavaScript. We tried using handwritten lexer/parser, but they sucked. Instead, use GLSLUnit's PEG parser grammar.
+</p>
+
+<h4>Semantic Analysis</h4>
+<p>
+The simulator performs very basic semantic analysis to disambiguate user-defined and built-in function calls, and extract input/output variables for displaying in the demo user interface.
+</p>
+
+<h4>Code Generation</h4>
+<p>
+TODO: Walk over AST, emit some code.
+</p>
+
+<h4>Runtime Library</h4>
+<p>
+TODO: implement builtins (builtins.js), operators (ops.js), and data types (vec.js, mat.js).
+</p>
+
+<h4>Running the Simulator</h4>
+<p>
+TODO: Program = 2 Shaders. Run = Program + Environment. Briefly explain input/output in the two demo pages.
+</p>
+
+<h3>
+<a id="id-evaluation" class="anchor" href="#id-evaluation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evaluation</h3>
+
+<h4>What can the simulator simulate?</h4>
+<p>
+TODO: talk about only single shader execution. Some complex fragment shaders work. Precision specifiers and other minor things are ignored. Preprocessor doesn't really work either.
+</p>
+
+<h4>How fast is generated code?</h4>
+<p>
+TODO: talk about speed. How long per frame? Use chrome's flame chart profiler to get per-run timing data.
+</p>
+
+<h4>Can we get intermediate states?</h4>
+<p>
+TODO: talk about stepping through generated code in JavaScript debugger. However, no general-purpose instrumentation or logging API yet. (see future work)
+</p>
+
+<h4>Are the computed results correct?</h4>
+<p>
+TODO: talk about float32 vs float64 precision and problems with JS coercion.
+</p>
+<p>
+TODO: talk about intentionally undefined behavior in the GLSL specification: texture sampler results, antialiasing, rasterization.
+</p>
+
+<h3>
+<a id="id-discussion" class="anchor" href="#id-discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion and Future Work</h3>
+
+While too slow to be useful in realistic scenarios, our initial prototype answered several design questions.
+Our most important finding is that the GLSL language itself is relatively small and its semantics map cleanly to JavaScript code. While our initial prototype is too slow for realistic use cases, we have not found any serious roadblocks that would make it difficult to improve performance by using well-understood compiler and runtime optimizations.
+
+<h4>Using semantic information during generation</h4>
+<p>
+The simulator prototype does not perform typechecking or other semantic analysis of the GLSL program, except for its inputs and outputs. The generated code does not change based on the types of expressions (i.e., vec3, mat4, or float). Thus, many slow runtime type checks and branches must be performed to compute the correct result. Since we can decide types at translation time, most of these can be omitted, thus removing most nonessential conditional branches from generated code.
+</p>
+
+<h4>Generating optimizable code</h4>
+<p>
+Modern JavaScript runtimes employ extensive use of adaptive optimization techniques such as inline caches, JIT compilation, and separate compilation tiers. Our naive translation blocks or reduces the effectiveness of these optimizations by using many function calls, conditional branches, and using weakly typed variables and data types. By using semantic information and simplification techniques, we can eliminate these sources of performance problems. For example, we can manually inline trivial builtin functions such as min, max, smoothstep, and vector distance to avoid function call overhead. Instead of using JavaScript's dynamically-sized and -typed Array data type, we can use <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays">Typed Arrays</a> to enforce data types.
+</p>
+
+<h4>Testing simulator results</h4>
+<p>
+Our prototype only has a few unit tests for the runtime.js library. To improve performance and track feature completeness, glsl-simulator should have compilation/runtime benchmarks as well as a regression test suite. Correctness of semantic analysis, builtin operators and functions can by tested more systematically by using glsl-simulator as a backend option in the <a href="https://github.com/KhronosGroup/WebGL/tree/master/conformance-suites/1.0.2/conformance/glsl">WebGL conformance suite</a>'s test harness.
+</p>
+
 <a id="id-appendix" class="anchor" href="#id-appendix" aria-hidden="true"><span class="octicon octicon-link"></span></a>Appendix</h3>
 
 <p><strong>Slides:</strong> <a target="_blank" href="assets/cse557-glsl-update-v4.pptx">final slides</a>
