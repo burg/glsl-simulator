@@ -1110,6 +1110,3 @@ condition
 
 initializer
   = assignment_expression
-
-constant_expression
-  = conditional_expression
