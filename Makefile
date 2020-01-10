@@ -56,7 +56,8 @@ PEGJS         = $(NODE_MODULES_BIN_DIR)/pegjs
 # ===== Targets =====
 
 # Default target
-all: parser browser
+# all: parser browser
+all: browser
 
 # Generate the grammar parser
 parser:
