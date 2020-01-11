@@ -1,4 +1,4 @@
-var RenderView = function(program, env) {
+var RenderView = function (program, env) {
     this.element = document.createElement("div");
     this.element.classList.add("render-view");
 
@@ -18,6 +18,13 @@ var RenderView = function(program, env) {
     this._updateButton.disabled = true;
     this.element.appendChild(this._updateButton);
     this._updateButton.addEventListener("click", this._updateButtonClicked.bind(this));
+
+    this._vertexButton = document.createElement("input");
+    this._vertexButton.type = "button";
+    this._vertexButton.value = "Vertex";
+    this._vertexButton.disabled = false;
+    this.element.appendChild(this._vertexButton);
+    this._vertexButton.addEventListener("click", this._vertexButtonClicked.bind(this));
 
     this._pixelCoordElement = document.createElement("span");
     this._pixelCoordElement.classList.add("pixel-coord");
@@ -39,8 +46,7 @@ RenderView.prototype = {
     constructor: RenderView,
     __proto__: GLSL.Object.prototype,
 
-    updateProgram: function(program)
-    {
+    updateProgram: function (program) {
         console.assert(program instanceof GLSL.Program);
         this.program = new GLSL.Program;
         if (program.vertexShader)
@@ -52,8 +58,7 @@ RenderView.prototype = {
         this._updateButton.disabled = false;
     },
 
-    updateEnvironment: function(env)
-    {
+    updateEnvironment: function (env) {
         console.assert(env instanceof GLSL.Environment);
         this.env = env.clone();
 
@@ -78,8 +83,7 @@ RenderView.prototype = {
 
     // Private
 
-    _renderImage: function()
-    {
+    _renderImage: function () {
         if (!this.program.vertexShader || !this.program.fragmentShader)
             return;
 
@@ -88,30 +92,35 @@ RenderView.prototype = {
         this._updateButton.disabled = true;
     },
 
-    _updateButtonClicked: function()
-    {
+    _runVertexShader: function () {
+        this.program._runSingleShader(this.program.vertexShader, this.env);
+    },
+
+    _updateButtonClicked: function () {
         this._renderImage();
     },
 
-    _canvasMouseEvent: function(event)
-    {
+    _vertexButtonClicked: function () {
+        this._runVertexShader();
+    },
+
+    _canvasMouseEvent: function (event) {
         var x = event.clientX - event.target.offsetLeft;
         var y = event.clientY - event.target.offsetTop;
         this._selectedCoord = [x, y];
 
         var rgba = [this._buffer.data[(y * this.renderWidth + x) * 4 + 0] | 0,
-                    this._buffer.data[(y * this.renderWidth + x) * 4 + 1] | 0,
-                    this._buffer.data[(y * this.renderWidth + x) * 4 + 2] | 0,
-                    (this._buffer.data[(y * this.renderWidth + x) * 4 + 3] / 255) | 0];
+        this._buffer.data[(y * this.renderWidth + x) * 4 + 1] | 0,
+        this._buffer.data[(y * this.renderWidth + x) * 4 + 2] | 0,
+        (this._buffer.data[(y * this.renderWidth + x) * 4 + 3] / 255) | 0];
 
         this._pixelColorElement.style.backgroundColor = "rgba(" + rgba.join(", ") + ")";
         this._pixelCoordElement.textContent = "gl_FragCoord = (" + [x, y, 1, 1].join(", ") + ")";
     },
 
-    _canvasMouseClicked: function(event)
-    {
+    _canvasMouseClicked: function (event) {
         this._canvasMouseEvent(event);
 
-        this.dispatchEventToListeners(RenderView.Event.PixelSelected, {x: this._selectedCoord.x, y: this._selectedCoord.y});
+        this.dispatchEventToListeners(RenderView.Event.PixelSelected, { x: this._selectedCoord.x, y: this._selectedCoord.y });
     }
 };
