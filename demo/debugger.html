@@ -1,40 +1,98 @@
 <!doctype html>
 <html>
+
 <head>
-<title>glsl-simulator: debugger</title>
-<link rel="stylesheet" href="external/codemirror.css" />
-<link rel="stylesheet" href="assets/shared.css" />
-<script src="../browser/glsl-simulator-0.1.0.js"></script>
-<script src="external/codemirror.js"></script>
-<script src="external/jsDump.js"></script>
-<script src="external/mode/glsl.js"></script>
-<script src="lib/DebugView.js"></script>
-<script src="lib/EditorView.js"></script>
-<script src="lib/ImageView.js"></script>
-<script src="lib/RenderView.js"></script>
-<script src="lib/VariableView.js"></script>
+    <title>glsl-simulator: debugger</title>
+    <link rel="stylesheet" href="external/codemirror.css" />
+    <link rel="stylesheet" href="assets/shared.css" />
+    <script src="../browser/glsl-simulator-0.1.0.js"></script>
+    <script src="external/codemirror.js"></script>
+    <script src="external/jsDump.js"></script>
+    <script src="external/mode/glsl.js"></script>
+    <script src="lib/DebugView.js"></script>
+    <script src="lib/EditorView.js"></script>
+    <script src="lib/ImageView.js"></script>
+    <script src="lib/RenderView.js"></script>
+    <script src="lib/VariableView.js"></script>
 </head>
+
 <body>
- <form>
-  <div id="demo-container">
-   <div id="left-side">
-    <div id="demo-header">
-    GLSL Simulator Demo: Debugger
-    </div>
-   </div>
-   <div id="right-side"></div>
-  </div>
- </form>
+    <form>
+        <div id="demo-container">
+            <div id="left-side">
+                <div id="demo-header">
+                    GLSL Simulator Demo: Debugger
+                </div>
+            </div>
+            <div id="right-side"></div>
+        </div>
+    </form>
 
-<script type="x-glsl-vshader" id="sample-vertex-shader">
-attribute vec2 position;
+    <script type="x-glsl-vshader" id="sample-vertex-shader">
+        // vertex shader for image processing
 
-void main()
-{
-    gl_Position = vec4(position, 0.0, 1.0);
-}
+        // image parameters to be specified before images are uploaded
+        uniform highp vec4 uImageDimensions;
+        uniform highp vec4 uMmPerVoxelDimension;
+        uniform int phaseEncodingDimension;
+        uniform int frequencyEncodingDimension;
+        
+        // data to be passed from the image
+        attribute highp float voxelIntensity;
+        attribute highp int voxelIndex;
+        
+        // used in converting index to coordinates
+        varying int dimCount;
+        varying highp int coordinateMultipliers[3];
+        
+        void main(){
+          
+          // dummy values for debugging
+          uImageDimensions = vec4(4, 4, 4, 4);
+          uMmPerVoxelDimension = vec4(2, 2, 2, 0);
+          voxelIntensity = 10.2;
+          voxelIndex = 20;
+          
+          gl_Position = getVoxelLocation(voxelIndex);
+          
+        }
+        
+        vec4 getVoxelCoordinates(highp int index){
+          highp int multiplier = 1;
+          dimCount = 3;
+          int highestNonSingletonDim = 0;
+          highp int dim;
+          for(int i = 0; i < dimCount; i++){
+            dim = uImageDimensions[i];
+            multiplier = multiplier * dim;
+            if(dim > 1){
+              highestNonSingletonDim = i;
+            }
+            coordinateMultipliers[i] = multiplier;
+          }
+          dimCount = highestNonSingletonDim + 1;
+          highp int remainder = index;
+          vec4 retVal = vec4(0,0,0,1);  
+          for(int i = dimCount-1; i >= 0; i--){
+            retVal[i] = floor(remainder / coordinateMultipliers[i]);
+            highp int coordinate = floor(remainder / coordinateMultipliers[i]);        
+            retVal[i] = coordinate;
+          }
+          return retVal;
+        }
+        
+        vec4 getVoxelLocation(highp int index){
+          vec4 coordinates = getVoxelCoordinates(index);
+          vec4 retVal = vec4(0,0,0,1);
+          for(int i = 0; i < dimCount; i++){
+            retval[i] = coordinates[i] * uMmPerVoxelDimension[i];
+          }
+          return retVal;
+        }
+        
+
 </script>
-<script type="x-glsl-fshader" id="sample-fragment-shader">
+    <script type="x-glsl-fshader" id="sample-fragment-shader">
 // Shader from: https://www.shadertoy.com/view/Md2GRc
 uniform float iGlobalTime;
 uniform vec2 iMouse;
@@ -105,125 +163,136 @@ void main() {
 }
 </script>
 
-<script type="text/javascript">
-var program = null;
-var env = null;
+    <script type="text/javascript">
+        var program = null;
+        var env = null;
 
-function getSuggestedVariableValue(savedInputs, variable) {
-    if (!variable || variable.readOnly)
-        return null;
+        function getSuggestedVariableValue(savedInputs, variable) {
+            if (!variable || variable.readOnly)
+                return null;
 
-    var key = [variable.name, variable.type].join("_");
-    if (key in savedInputs)
-        return savedInputs[key];
+            var key = [variable.name, variable.type].join("_");
+            if (key in savedInputs)
+                return savedInputs[key];
 
-    return null;
-}
-
-window.addEventListener("load", function initViews() {
-    program = new GLSL.Program;
-    env = new GLSL.Environment;
-
-    var previousInputs = {}; // Map from "name_type" to previous GLSL value.
-    var suggestedVariableValueCallback = getSuggestedVariableValue.bind(null, previousInputs);
-
-    var leftSide = document.getElementById("left-side");
-    var rightSide = document.getElementById("right-side");
-
-    var renderer = new RenderView(program, env);
-
-    // Prepopulate with useful inputs for the demo.
-    previousInputs["iResolution_vec3"] = GLSL.Runtime.Vec3(renderer.renderWidth, renderer.renderHeight, 1);
-    previousInputs["iGlobalTime_float"] = 22.1;
-
-    var variableList = new VariableListView([], suggestedVariableValueCallback);
-    var image = new ImageView({env: env, program: program}, suggestedVariableValueCallback);
-    var resultsTop = new DebugView(program, env, "top");
-    var resultsBottom = new DebugView(program, env, "bottom");
-
-    //leftSide.appendChild(image.element);
-    leftSide.appendChild(variableList.element);
-    leftSide.appendChild(renderer.element);
-    rightSide.appendChild(resultsTop.element);
-    rightSide.appendChild(resultsBottom.element);
-
-    function variableValueInputChanged(event) {
-        var variable = event.data.variable;
-        var key = [variable.name, variable.type].join("_");
-        var value = event.data.value;
-        previousInputs[key] = value;
-
-        env.enterEditScope();
-        env.set(variable.name, value);
-        env.exitEditScope();
-    }
-
-    function recreateVariableList() {
-        variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-        var newList = VariableListView.fromShader(program.fragmentShader, suggestedVariableValueCallback);
-        newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
-
-        leftSide.replaceChild(newList.element, variableList.element);
-        variableList = newList;
-    }
-
-    program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
-        recreateVariableList.call(null, event);
-        env.reset();
-
-        env.enterEditScope();
-            env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
-            env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
-        env.exitEditScope();
-
-        renderer.updateProgram(program);
-        renderer.updateEnvironment(env);
-    });
-
-    env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
-        resultsTop.clearError();
-        renderer.updateEnvironment(env);
-    });
-
-    GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, function runWithNewExecutable() {
-        program.runShaders(env);
-    });
-
-    env.addEventListener(GLSL.Environment.Event.ResultChanged, function refreshOutputViews(event) {
-        variableList.populateResults(env);
-        resultsTop.refresh();
-        resultsBottom.refresh();
-    });
-
-    program.addEventListener(GLSL.Program.Event.Error, function displayError(event) {
-        var errorType = event.data.type;
-        if (errorType === GLSL.Error.Type.VertexShaderTranslation || GLSL.Error.Type.VertexShaderExecution) {
-            resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
-            resultsBottom.activeOutputType = "codegen";
+            return null;
         }
 
-        if (errorType === GLSL.Error.Type.FragmentShaderTranslation || GLSL.Error.Type.FragmentShaderExecution) {
+        window.addEventListener("load", function initViews() {
+            program = new GLSL.Program;
+            env = new GLSL.Environment;
+
+            var previousInputs = {}; // Map from "name_type" to previous GLSL value.
+            var suggestedVariableValueCallback = getSuggestedVariableValue.bind(null, previousInputs);
+
+            var leftSide = document.getElementById("left-side");
+            var rightSide = document.getElementById("right-side");
+
+            var renderer = new RenderView(program, env);
+
+            // Prepopulate with useful inputs for the demo.
+            previousInputs["iResolution_vec3"] = GLSL.Runtime.Vec3(renderer.renderWidth, renderer.renderHeight, 1);
+            previousInputs["iGlobalTime_float"] = 22.1;
+
+            var variableList = new VariableListView([], suggestedVariableValueCallback);
+            var image = new ImageView({ env: env, program: program }, suggestedVariableValueCallback);
+            var resultsTop = new DebugView(program, env, "top");
+            var resultsBottom = new DebugView(program, env, "bottom");
+
+            //leftSide.appendChild(image.element);
+            leftSide.appendChild(variableList.element);
+            leftSide.appendChild(renderer.element);
+            rightSide.appendChild(resultsTop.element);
+            rightSide.appendChild(resultsBottom.element);
+
+            function variableValueInputChanged(event) {
+                var variable = event.data.variable;
+                var key = [variable.name, variable.type].join("_");
+                var value = event.data.value;
+                previousInputs[key] = value;
+
+                env.enterEditScope();
+                env.set(variable.name, value);
+                env.exitEditScope();
+            }
+
+            function recreateVariableList(shaderType) {
+                variableList.removeEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
+                var shader = program.fragmentShader;
+                if(shaderType && shaderType === GLSL.Shader.Type.Vertex){
+                    shader = program.vertexShader;
+                }
+                var newList = VariableListView.fromShader(shader, suggestedVariableValueCallback);
+                newList.addEventListener(VariableListView.Event.VariableValueChanged, variableValueInputChanged);
+
+                leftSide.replaceChild(newList.element, variableList.element);
+                variableList = newList;
+            }
+
+            program.addEventListener(GLSL.Program.Event.ShaderChanged, function runWithNewShader(event) {
+                recreateVariableList.call(null, event);
+                env.reset();
+
+                env.enterEditScope();
+                env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Vertex), suggestedVariableValueCallback);
+                env.setDefaultValuesForShader(program.shaderWithType(GLSL.Shader.Type.Fragment), suggestedVariableValueCallback);
+                env.exitEditScope();
+
+                renderer.updateProgram(program);
+                renderer.updateEnvironment(env);
+            });
+
+            env.addEventListener(GLSL.Environment.Event.InputChanged, function runWithNewInputs() {
+                resultsTop.clearError();
+                renderer.updateEnvironment(env);
+            });
+
+            GLSL.Shader.addEventListener(GLSL.Shader.Event.ExecutableChanged, function runWithNewExecutable() {
+                program.runShaders(env);
+            });
+
+            env.addEventListener(GLSL.Environment.Event.ResultChanged, function refreshOutputViews(event) {
+                variableList.populateResults(env);
+                resultsTop.refresh();
+                resultsBottom.refresh();
+            });
+
+            program.addEventListener(GLSL.Program.Event.Error, function displayError(event) {
+                var errorType = event.data.type;
+                if (errorType === GLSL.Error.Type.VertexShaderTranslation || GLSL.Error.Type.VertexShaderExecution) {
+                    resultsBottom.activeShaderType = GLSL.Shader.Type.Vertex;
+                    resultsBottom.activeOutputType = "codegen";
+                }
+
+                if (errorType === GLSL.Error.Type.FragmentShaderTranslation || GLSL.Error.Type.FragmentShaderExecution) {
+                    resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
+                    resultsBottom.activeOutputType = "codegen";
+                }
+
+                resultsTop.showErrorMessage(errorType, event.data.message);
+            });
+
+            var topShaderTypeSelector = document.getElementById('results-top-shader-selector');
+            var selectedShaderType = topShaderTypeSelector.selectedOptions[0].innerText;
+            topShaderTypeSelector.addEventListener('change', (event=>{
+                recreateVariableList(event.target.value);
+            }));
+
+            //window.addEventListener("resize", editor.autosizeHeight.bind(editor));
+
+            program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
+            program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
+
+            // Change these defaults if you want to start somewhere else.
+            resultsTop.activeShaderType = GLSL.Shader.Type.Fragment;
+            resultsTop.activeOutputType = "pretty";
+
             resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
             resultsBottom.activeOutputType = "codegen";
-        }
+        });
 
-        resultsTop.showErrorMessage(errorType, event.data.message);
-    });
-
-    //window.addEventListener("resize", editor.autosizeHeight.bind(editor));
-
-    program.updateShaderWithType(GLSL.Shader.Type.Vertex, document.getElementById("sample-vertex-shader").textContent);
-    program.updateShaderWithType(GLSL.Shader.Type.Fragment, document.getElementById("sample-fragment-shader").textContent);
-
-    // Change these defaults if you want to start somewhere else.
-    resultsTop.activeShaderType = GLSL.Shader.Type.Fragment;
-    resultsTop.activeOutputType = "pretty";
-
-    resultsBottom.activeShaderType = GLSL.Shader.Type.Fragment;
-    resultsBottom.activeOutputType = "codegen";
-});
-
-</script>
+    </script>
 
 </body>
+
 </html>

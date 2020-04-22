@@ -1,7 +1,7 @@
 # Build script borrowed from PEG.js
 
 # ===== Variables =====
-
+VERSION_FILE = VERSION
 GLSL_SIMULATOR_VERSION = `cat $(VERSION_FILE)`
 
 # ===== Modules =====
@@ -56,11 +56,12 @@ PEGJS         = $(NODE_MODULES_BIN_DIR)/pegjs
 # ===== Targets =====
 
 # Default target
-all: parser browser
+# all: parser browser
+all: browser
 
 # Generate the grammar parser
 parser:
-	$(PEGJS) $(PARSER_SRC_FILE) $(PARSER_OUT_FILE)
+	$(PEGJS) -o $(PARSER_OUT_FILE) $(PARSER_SRC_FILE) 
 
 # Build the browser version of the library
 browser:
@@ -119,7 +120,7 @@ browser:
 
 	$(UGLIFYJS)                 \
 		--mangle                  \
-		--compress warnings=false \
+		--compress  \
 		--comments /Simplified\ BSD\ License/    \
 		-o $(BROWSER_FILE_MIN)    \
 		$(BROWSER_FILE_DEV)
